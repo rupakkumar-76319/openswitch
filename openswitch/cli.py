@@ -38,7 +38,7 @@ def migrate(repo: Path, n_inputs: int, max_iters: int, reuse: bool):
     cache = state_dir / "evals.json"
 
     stage(1, "Scan the repo for LLM call sites", "Python AST")
-    sites, clients = scan.scan(repo)
+    sites, _ = scan.scan(repo)
     if not sites:
         console.print("[red]No OpenAI/Anthropic call sites found.[/red]")
         return 1
@@ -48,7 +48,6 @@ def migrate(repo: Path, n_inputs: int, max_iters: int, reuse: bool):
     for s in sites:
         t.add_row(f"{s.file}:{s.line} {s.function}()", s.provider, s.model, ", ".join(p for p in s.params if p != "messages"))
     console.print(t)
-    files = sorted({s.file for s in sites})
     repo_files = _context_files(repo)
 
     if reuse and cache.exists():
@@ -85,10 +84,16 @@ def migrate(repo: Path, n_inputs: int, max_iters: int, reuse: bool):
             for cand in _entrypoints(repo, s, plan[s.id])[:3]:
                 ctx = _eval_context(repo_files, s, cand)
                 cand_inputs = evals.gen_inputs(s, cand, plan[s.id], ctx, n_inputs)
-                if cand_inputs and (cand.__name__ == s.function or _reaches_only(cand, cand_inputs, s.function)):
+                if not cand_inputs:  # an empty or rejected batch happens now and then; ask once more
+                    cand_inputs = evals.gen_inputs(s, cand, plan[s.id], ctx, n_inputs)
+                if not cand_inputs:
+                    log(f"{cand.__name__}(): no usable eval inputs; trying the next entry point")
+                    continue
+                reason = "" if cand.__name__ == s.function else _entry_problem(cand, cand_inputs, s.function)
+                if not reason:
                     fn, inputs, context = cand, cand_inputs, ctx
                     break
-                log(f"{cand.__name__}() makes other LLM calls too; trying the next entry point")
+                log(f"{cand.__name__}(): {reason}; trying the next entry point")
             if fn is None:
                 raise RuntimeError(f"could not build eval inputs for {s.function}")
             if fn.__name__ != s.function:
@@ -209,11 +214,18 @@ def migrate(repo: Path, n_inputs: int, max_iters: int, reuse: bool):
         if code_fixes or any(a.startswith("escalated") for a in actions):
             fb = ("Previous version failed tests. Required changes:\n" +
                   "\n".join(f"- {k}: {v}" for k, v in code_fixes.items()) + "\n") if code_fixes else ""
-            changed = apply_rewrite(fb)
-            actions += [f"fixed {k}: {str(v)[:120]}" for k, v in code_fixes.items()]
+            good = {f: (repo / f).read_text(encoding="utf-8") for f in originals}
+            try:
+                changed = apply_rewrite(fb)
+                actions += [f"fixed {k}: {str(v)[:120]}" for k, v in code_fixes.items()]
+            except RuntimeError as e:  # the fix failed the checker: keep the last version that passed it
+                for f, t in good.items():
+                    (repo / f).write_text(t, encoding="utf-8")
+                actions.append(f"proposed fix rejected by the checker, kept the previous version ({str(e)[:100]})")
         if smoke_fix and wrote_tests:  # only OpenSwitch's own tests may be rewritten, never the repo's
             rewrite.write_smoke_tests(repo, {f: (repo / f).read_text(encoding="utf-8") for f in changed},
-                                      site_results)
+                                      site_results, feedback=f"The previous version of this test was wrong: "
+                                      f"{smoke_fix}\nTest output:\n{out[-2000:]}\n\n")
             actions.append(f"rewrote its own smoke test: {smoke_fix[:100]}")
         log(diag.get("explanation", ""))
         ok, out, counts = rewrite.run_tests(repo)
@@ -267,7 +279,7 @@ def migrate(repo: Path, n_inputs: int, max_iters: int, reuse: bool):
 def _entrypoints(repo: Path, site, plan_entry: dict) -> list:
     """Candidate functions for the evals, best first: the planner's pick, then the call site's callers
     (found with the AST), then the call site itself. Each must take plain data so the app builds its
-    real prompts; _reaches_only() then confirms it reaches only this call site."""
+    real prompts; _entry_problem() then confirms it reaches only this call site."""
     out, seen = [], set()
 
     def add(file: str, name: str):
@@ -304,9 +316,16 @@ def _verify_requests(repo: Path, site_results: list[dict], decisions_by_file: di
     for r in site_results:
         d = decisions_by_file[r["file"]][r["function"]]
         entry = r.get("entry") or {"file": r["file"], "function": r["function"]}
+        args = dict(r["inputs"][0])
+        if entry["function"] == r["function"]:
+            # evals drove the call site itself; if it takes the model as an argument, the caller now
+            # passes the configured model, so replaying the old id from the eval input proves nothing
+            for k, v in args.items():
+                if v == r["source_model"]:
+                    args[k] = _configured_model(repo, r, d)
         try:
             fn = getattr(capture.load_module(repo, entry["file"]), entry["function"])
-            c = capture.capture(fn, r["inputs"][0])
+            c = capture.capture(fn, args)
         except Exception as e:
             problems.append(f"{r['function']}: the migrated app failed before its LLM call: {type(e).__name__}: {e}")
             continue
@@ -318,7 +337,36 @@ def _verify_requests(repo: Path, site_results: list[dict], decisions_by_file: di
         if thinking is not d["thinking"]:
             problems.append(f"{r['function']}: running the migrated app sends enable_thinking={thinking!r}, "
                             f"expected {d['thinking']}")
+        probe = r.get("probe")
+        if probe:
+            pargs = dict(r["inputs"][probe["input_index"]])
+            for k, v in pargs.items():
+                if v == r["source_model"] and entry["function"] == r["function"]:
+                    pargs[k] = args.get(k, v)
+            ok, value = capture.replay(fn, pargs, probe["text"])
+            if not ok or evals.comparable(value) != probe["value"]:
+                problems.append(f"{entry['function']}: behaviour changed. For the same model answer the original code "
+                                f"returned {probe['value'][:160]!r}, the migrated code returns "
+                                f"{(evals.comparable(value) if ok else value)[:160]!r}. Keep return values and "
+                                "post-processing exactly as before")
+        sent_max = c.kwargs.get("max_tokens")
+        if isinstance(sent_max, int) and sent_max < d["max_tokens"]:
+            problems.append(f"{r['function']}: running the migrated app sends max_tokens={sent_max}, below "
+                            f"{d['max_tokens']} needed with thinking; raise it in the code or the config it reads")
     return problems
+
+
+def _configured_model(repo: Path, r: dict, d: dict) -> str:
+    """The model id the migrated app passes to this call site: the first known model id found in the
+    repo's config files and callers. Returns the old id if nothing was changed, so the check fails."""
+    known = [d["model"], r["source_model"], *llm.PRICES]
+    for p, t in _context_files(repo).items():
+        if p == r["file"]:
+            continue
+        for mid in known:
+            if mid in t:
+                return mid
+    return r["source_model"]
 
 
 def _close_call(r: dict) -> bool:
@@ -328,18 +376,22 @@ def _close_call(r: dict) -> bool:
                and c["mean_score"] >= r["threshold"] - 1.0 for c in r["configs"])
 
 
-def _reaches_only(fn, inputs: list[dict], site_function: str) -> bool:
-    """The entrypoint is usable only if its one and only LLM request comes from the call site."""
+def _entry_problem(fn, inputs: list[dict], site_function: str) -> str:
+    """Why fn can't drive the evals for site_function ("" if it can): its one and only LLM request
+    must come from the call site."""
     checked = 0
     for a in inputs[:3]:
         try:
             c = capture.capture(fn, a)
         except Exception:
             continue  # this generated input crashes before any LLM call; evaluate_site drops it
-        if site_function not in c.callers or capture.count_calls(fn, a) != 1:
-            return False
+        if site_function not in c.callers:
+            return f"its first LLM call comes from {next((x for x in c.callers if x != '<lambda>'), '?')}()"
+        n = capture.count_calls(fn, a)
+        if n != 1:
+            return f"it makes {n} LLM calls per run"
         checked += 1
-    return checked > 0
+    return "" if checked else "none of its inputs reach an LLM call"
 
 
 def _context_files(repo: Path) -> dict[str, str]:
@@ -375,6 +427,11 @@ def _next_config(ranked: list[dict], cur: dict) -> dict | None:
 
 
 def _update_project_files(repo: Path):
+    gi = repo / ".gitignore"
+    have = gi.read_text(encoding="utf-8").splitlines() if gi.exists() else []
+    missing = [x for x in (".openswitch/", "__pycache__/", ".env") if x not in have]
+    if missing:
+        gi.write_text("\n".join(have + missing) + "\n", encoding="utf-8")
     req = repo / "requirements.txt"
     still_anthropic = any("anthropic" in p.read_text(encoding="utf-8", errors="replace")
                           for p in repo.rglob("*.py") if not any(x in scan.SKIP_DIRS for x in p.parts)

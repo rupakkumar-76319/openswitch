@@ -18,10 +18,10 @@ CATEGORIES = ["billing", "shipping", "technical", "account", "refund"]
 def classify_ticket(text: str) -> str:
     """Route a ticket to one queue."""
     resp = client.chat.completions.create(
-        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        model="nvidia/nemotron-3-super-120b-a12b",
         temperature=0,
         max_tokens=512,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        extra_body={"chat_template_kwargs": {"enable_thinking": False, "force_nonempty_content": True}},
         messages=[
             {"role": "system", "content": "You route customer support tickets. "
              f"Answer with exactly one word from: {', '.join(CATEGORIES)}."},
@@ -35,10 +35,10 @@ def classify_ticket(text: str) -> str:
 def extract_order(text: str) -> dict:
     """Pull structured order fields out of a free-text ticket."""
     resp = client.chat.completions.create(
-        model="nvidia/nemotron-3-super-120b-a12b",
+        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
         response_format={"type": "json_object"},
         max_tokens=512,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        extra_body={"chat_template_kwargs": {"enable_thinking": False, "force_nonempty_content": True}},
         messages=[
             {"role": "system", "content": "Extract order details from the ticket. Return JSON with keys "
              "order_id (string or null), product (string or null), quantity (integer or null), "
@@ -53,7 +53,7 @@ def refund_amount(policy: str, ticket: str) -> float:
     """Apply the refund policy to a ticket and return the refund in dollars."""
     resp = client.chat.completions.create(
         model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
-        max_tokens=15462,
+        max_tokens=6363,
         extra_body={"chat_template_kwargs": {"enable_thinking": True}},
         messages=[
             {"role": "user", "content": f"Refund policy:\n{policy}\n\nTicket:\n{ticket}\n\n"
@@ -68,9 +68,9 @@ def summarize_thread(messages: list[str]) -> str:
     """Two-sentence handoff summary of a long ticket thread for the next agent."""
     thread = "\n".join(f"- {m}" for m in messages)
     resp = client.chat.completions.create(
-        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        model="nvidia/nemotron-3-super-120b-a12b",
         max_tokens=512,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        extra_body={"chat_template_kwargs": {"enable_thinking": False, "force_nonempty_content": True}},
         messages=[
             {"role": "system", "content": "Summarize this support thread in at most two sentences for the next "
              "agent. Include the customer's problem, what was already tried, and what is still open."},
@@ -85,8 +85,8 @@ def draft_reply(ticket: str, summary: str, tone: str = "friendly") -> str:
     resp = client.chat.completions.create(
         model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
         temperature=0.4,
-        max_tokens=512,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        max_tokens=2048,
+        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
         messages=[
             {"role": "system", "content": f"You are a {tone} support agent for an online electronics store. "
              "Write a short reply (under 120 words). Never promise refunds or dates you were not given."},
@@ -100,8 +100,8 @@ def translate_reply(reply: str, language: str) -> str:
     """Translate an approved reply into the customer's language."""
     resp = client.chat.completions.create(
         model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
-        max_tokens=2048,
-        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
+        max_tokens=600,
+        extra_body={"chat_template_kwargs": {"enable_thinking": False, "force_nonempty_content": True}},
         messages=[
             {"role": "system", "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. "
                "Output only the translation."},
@@ -109,3 +109,4 @@ def translate_reply(reply: str, language: str) -> str:
         ],
     )
     return resp.choices[0].message.content.strip()
+

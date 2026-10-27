@@ -81,11 +81,7 @@ def check_file(src: str, decisions: dict, literal: dict | None = None) -> list[s
         mt = kw.get("max_tokens")
         if isinstance(mt, ast.Constant) and isinstance(mt.value, int) and mt.value < d["max_tokens"]:
             problems.append(f"{name}: max_tokens {mt.value} is below {d['max_tokens']}")
-        elif mt is not None and not isinstance(mt, ast.Constant):
-            mt_src = ast.get_source_segment(src, mt) or ""
-            if not any(int(x) >= d["max_tokens"] for x in re.findall(r"\d+", mt_src)):
-                problems.append(f"{name}: max_tokens comes from config and may be too small with thinking; use "
-                                f"max({d['max_tokens']}, <configured value>)")
+        # a max_tokens read from config is checked behaviourally (cli._verify_requests), not here
         if "reasoning_effort" in kw:
             problems.append(f"{name}: remove reasoning_effort")
         for p, v in d.get("keep", {}).items():
@@ -93,6 +89,21 @@ def check_file(src: str, decisions: dict, literal: dict | None = None) -> list[s
             if not (isinstance(got, ast.Constant) and got.value == v):
                 problems.append(f"{name}: keep the original {p}={v!r}")
     return problems
+
+
+def _signatures(src: str) -> dict[str, list[str]]:
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return {}
+    return {n.name: [a.arg for a in n.args.posonlyargs + n.args.args + n.args.kwonlyargs]
+            for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+
+def _signature_changes(before: str, after: str) -> list[str]:
+    old, new = _signatures(before), _signatures(after)
+    return [f"function {name} changed its parameters {params} -> {new.get(name)}; keep the public API unchanged"
+            for name, params in old.items() if not name.startswith("_") and new.get(name, params) != params]
 
 
 FILE_RE = re.compile(r"^#{2,4} FILE: (\S+)\s*\n```[\w.+-]*\n(.*?)^```", re.S | re.M)
@@ -129,6 +140,9 @@ def rewrite_repo(repo: Path, decisions_by_file: dict, related: list[str], litera
         problems = []
         for f, d in decisions_by_file.items():
             problems += [f"{f}: {x}" for x in check_file(merged[f], d, literal)]
+        for f in changed:
+            if f.endswith(".py"):
+                problems += [f"{f}: {x}" for x in _signature_changes(files[f], merged[f])]
         everything = "\n".join(merged.values())
         for fn, d in decisions.items():
             if not literal.get(fn, True) and d["model"] not in everything:
@@ -146,20 +160,26 @@ def rewrite_repo(repo: Path, decisions_by_file: dict, related: list[str], litera
     raise RuntimeError(f"rewrite still fails checks: {problems}")
 
 
-def write_smoke_tests(repo: Path, changed: dict[str, str], site_results: list[dict]) -> Path:
-    """The repo has no tests: Ultra writes live smoke tests from the eval inputs and the output contracts."""
-    cases = "\n".join(
-        f"- {r['file']}::{r['function']} contract: {r['plan'].get('output_contract', '')}\n"
-        f"  example args: {json.dumps(r['inputs'][:2], ensure_ascii=False, default=str)[:1500]}"
-        for r in site_results)
-    r = llm.chat([{"role": "user", "content":
-        "Write a pytest file `tests/test_openswitch_smoke.py` for this repository after its LLM calls were migrated "
-        "to Nemotron on Nebius. For each function below write one live test: call it with realistic arguments "
-        "(adapt the examples; use the app's configured model/default, never an OpenAI model id) and assert the "
-        "output contract (types, required fields, non-empty text). Import modules by their path from the repo root. "
-        "Keep assertions robust to wording differences. No mocks.\n\n"
-        f"Functions:\n{cases}\n\nMigrated code:\n{_files_block(changed)}\n\nReturn only the file in one ```python block."}],
-        llm.ULTRA, role="test-writer", thinking=True, max_tokens=16000)
+def _module_name(rel_file: str) -> str:
+    name = Path(rel_file).with_suffix("").as_posix().replace("/", ".")
+    return name[: -len(".__init__")] if name.endswith(".__init__") else name
+
+
+def write_smoke_tests(repo: Path, changed: dict[str, str], site_results: list[dict], feedback: str = "") -> Path:
+    """The repo has no tests: Ultra writes live smoke tests from the eval inputs and the output contracts.
+    The file must at least import and collect under pytest; otherwise Ultra gets the error and tries again."""
+    cases = []
+    for r in site_results:
+        entry = r.get("entry") or {"file": r["file"], "function": r["function"]}
+        probe = r.get("probe") or {}
+        calls = "\n".join(f"    {entry['function']}(**{json.dumps(a, ensure_ascii=False, default=str)[:1200]})"
+                          for a in r["inputs"][:2])
+        cases.append(
+            f"- function `{entry['function']}` (import with: `from {_module_name(entry['file'])} import "
+            f"{entry['function']}`); it reaches the migrated LLM call `{r['function']}`.\n"
+            f"  Example calls (keyword arguments exactly as shown):\n{calls}\n"
+            f"  What the app's real code returned for one such call: {str(probe.get('value', ''))[:600]}\n"
+            f"  Assert that shape (type, required parts), not the exact wording.")
     tests = repo / "tests"
     tests.mkdir(exist_ok=True)
     conftest = tests / "conftest.py"
@@ -167,8 +187,24 @@ def write_smoke_tests(repo: Path, changed: dict[str, str], site_results: list[di
         conftest.write_text("import pathlib\nimport sys\n\nsys.path.insert(0, str(pathlib.Path(__file__).resolve()"
                             ".parents[1]))\n", encoding="utf-8")
     path = tests / "test_openswitch_smoke.py"
-    path.write_text("# Written by OpenSwitch: live smoke tests for the migrated LLM calls.\n" + _strip_fence(r.text),
-                    encoding="utf-8")
+    msgs = [{"role": "user", "content":
+        "Write a pytest file `tests/test_openswitch_smoke.py` for this repository after its LLM calls were migrated "
+        "to Nemotron on Nebius. For each item below write one live test: call the named function with realistic "
+        "arguments adapted from the examples and assert its output contract (types, required fields, non-empty "
+        "text). Use exactly the import lines given; the repo root is on sys.path. Let the app pick its own model "
+        "and settings (do not pass or hard-code model ids). Keep assertions robust to wording differences. No mocks."
+        f"\n\n{feedback}Tests to write:\n" + "\n".join(cases)
+        + f"\n\nMigrated code:\n{_files_block(changed)}\n\nReturn only the file in one ```python block."}]
+    for _ in range(3):
+        r = llm.chat(msgs, llm.ULTRA, role="test-writer", thinking=True, max_tokens=16000)
+        path.write_text("# Written by OpenSwitch: live smoke tests for the migrated LLM calls.\n"
+                        + _strip_fence(r.text), encoding="utf-8")
+        ok, out, _ = run_tests(repo, ["--collect-only", "tests/test_openswitch_smoke.py"])
+        if ok:
+            break
+        msgs += [{"role": "assistant", "content": r.text},
+                 {"role": "user", "content": "pytest cannot collect this file:\n" + out[-2500:]
+                  + "\nFix it and return the whole file again."}]
     return path
 
 
@@ -191,7 +227,11 @@ def diagnose(test_output: str, files: dict[str, str], decisions: dict) -> dict:
     return llm.ask_json([{"role": "user", "content":
         "A migration agent moved this app's LLM calls to Nemotron models and the repo's tests now fail. "
         "Decide for each failure whether the migrated CODE is wrong (bug introduced by the rewrite) or the chosen "
-        "MODEL config is too weak for that function. You may not change the repo's original tests.\n\n"
+        "MODEL config is too weak for that function, or the TEST itself is wrong. You may not change the repo's "
+        "original tests. tests/test_openswitch_smoke.py was generated by the agent and can be wrong: if it calls a "
+        "function with the wrong arguments or expects a different return type than the app's real code, put it "
+        "under code_fixes as tests/test_openswitch_smoke.py. Never change application behaviour, return values or "
+        "signatures to satisfy a test.\n\n"
         f"Current decisions:\n{_decisions_text(decisions)}\n\n{_files_block(files)}"
         f"\n\nTest output:\n```\n{test_output[-7000:]}\n```\n\n"
         'Return JSON {"escalate": [function names whose model is too weak], '

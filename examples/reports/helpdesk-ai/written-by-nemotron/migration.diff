@@ -7,7 +7,7 @@ index 0000000..5d01def
 +NEBIUS_API_KEY=
 +NEBIUS_BASE_URL=https://api.tokenfactory.nebius.com/v1
 diff --git a/helpdesk/ai.py b/helpdesk/ai.py
-index 4086173..7097edf 100644
+index 4086173..37873a4 100644
 --- a/helpdesk/ai.py
 +++ b/helpdesk/ai.py
 @@ -5,11 +5,12 @@ Every function here is called from the ticket pipeline (helpdesk/pipeline.py).
@@ -31,10 +31,10 @@ index 4086173..7097edf 100644
      """Route a ticket to one queue."""
      resp = client.chat.completions.create(
 -        model="gpt-4o-mini",
-+        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
++        model="nvidia/nemotron-3-super-120b-a12b",
          temperature=0,
 +        max_tokens=512,
-+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
++        extra_body={"chat_template_kwargs": {"enable_thinking": False, "force_nonempty_content": True}},
          messages=[
              {"role": "system", "content": "You route customer support tickets. "
               f"Answer with exactly one word from: {', '.join(CATEGORIES)}."},
@@ -43,10 +43,10 @@ index 4086173..7097edf 100644
      """Pull structured order fields out of a free-text ticket."""
      resp = client.chat.completions.create(
 -        model="gpt-4o",
-+        model="nvidia/nemotron-3-super-120b-a12b",
++        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
          response_format={"type": "json_object"},
 +        max_tokens=512,
-+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
++        extra_body={"chat_template_kwargs": {"enable_thinking": False, "force_nonempty_content": True}},
          messages=[
              {"role": "system", "content": "Extract order details from the ticket. Return JSON with keys "
               "order_id (string or null), product (string or null), quantity (integer or null), "
@@ -57,7 +57,7 @@ index 4086173..7097edf 100644
 -        model="o3-mini",
 -        reasoning_effort="medium",
 +        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
-+        max_tokens=15462,
++        max_tokens=6363,
 +        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
          messages=[
              {"role": "user", "content": f"Refund policy:\n{policy}\n\nTicket:\n{ticket}\n\n"
@@ -68,9 +68,9 @@ index 4086173..7097edf 100644
      resp = client.chat.completions.create(
 -        model="gpt-4o",
 -        max_tokens=200,
-+        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
++        model="nvidia/nemotron-3-super-120b-a12b",
 +        max_tokens=512,
-+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
++        extra_body={"chat_template_kwargs": {"enable_thinking": False, "force_nonempty_content": True}},
          messages=[
              {"role": "system", "content": "Summarize this support thread in at most two sentences for the next "
               "agent. Include the customer's problem, what was already tried, and what is still open."},
@@ -81,25 +81,24 @@ index 4086173..7097edf 100644
 -        model="gpt-4o",
 +        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
          temperature=0.4,
-+        max_tokens=512,
-+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
++        max_tokens=2048,
++        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
          messages=[
              {"role": "system", "content": f"You are a {tone} support agent for an online electronics store. "
               "Write a short reply (under 120 words). Never promise refunds or dates you were not given."},
-@@ -89,11 +98,14 @@ def draft_reply(ticket: str, summary: str, tone: str = "friendly") -> str:
+@@ -89,11 +98,15 @@ def draft_reply(ticket: str, summary: str, tone: str = "friendly") -> str:
  
  def translate_reply(reply: str, language: str) -> str:
      """Translate an approved reply into the customer's language."""
 -    msg = claude.messages.create(
 -        model="claude-sonnet-4-5",
--        max_tokens=600,
++    resp = client.chat.completions.create(
++        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+         max_tokens=600,
 -        system="Translate the support reply. Keep names, order numbers and amounts unchanged. "
 -               "Output only the translation.",
 -        messages=[{"role": "user", "content": f"Target language: {language}\n\n{reply}"}],
-+    resp = client.chat.completions.create(
-+        model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
-+        max_tokens=2048,
-+        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
++        extra_body={"chat_template_kwargs": {"enable_thinking": False, "force_nonempty_content": True}},
 +        messages=[
 +            {"role": "system", "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. "
 +               "Output only the translation."},
@@ -108,11 +107,13 @@ index 4086173..7097edf 100644
      )
 -    return msg.content[0].text.strip()
 +    return resp.choices[0].message.content.strip()
++
 diff --git a/requirements.txt b/requirements.txt
-index 97890e1..cc4e1d9 100644
+index 97890e1..39fb345 100644
 --- a/requirements.txt
 +++ b/requirements.txt
-@@ -1,3 +1,2 @@
+@@ -1,3 +1,3 @@
  openai>=1.40
 -anthropic>=0.40
  pytest
++

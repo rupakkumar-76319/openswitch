@@ -145,8 +145,8 @@ NEMOTRON
 
 <h2>Why it matters</h2>
 <ul>
-<li><b>Measured, not guessed.</b> On refund-policy math, Nemotron Nano <em>with thinking</em> scored 9.2/10 while Super <em>without</em> thinking scored 3.3/10. Thinking is a choice per call, and OpenSwitch measures it.</li>
-<li><b>Spends where it matters.</b> When a much cheaper config narrowly misses, OpenSwitch doubles the sample for that call before deciding. In the Issue Digest run, that moved the call from Ultra to Nano with thinking: 10x cheaper, still passing.</li>
+<li><b>Measured, not guessed.</b> On refund-policy math, Nemotron Nano <em>with thinking</em> scored 10/10 while Super <em>without</em> thinking scored 1.7/10. Thinking is a choice per call, and OpenSwitch measures it.</li>
+<li><b>Spends where it matters.</b> When a much cheaper config narrowly misses, OpenSwitch doubles the sample for that call before deciding. In the HelpDesk run, that moved <code>draft_reply</code> from Super to Nano (both with thinking): about 4x cheaper, still passing.</li>
 <li><b>Honest output.</b> The report shows every configuration's score, flags calls that cost more after the switch, and lists the failure cases it found.</li>
 <li><b>Nothing to trust blindly.</b> You get a branch to review: a normal diff, a PR description and the test log.</li>
 </ul>

@@ -62,11 +62,12 @@ def _patched(handler):
 
 def forget_modules(repo: Path):
     """Drop the repo's modules from the import cache so edited files are imported fresh."""
-    root = str(repo.resolve())
+    root = str(repo.resolve()).lower()
     for name, mod in list(sys.modules.items()):
         f = getattr(mod, "__file__", None)
-        if f and str(Path(f).resolve()).startswith(root):
+        if f and str(Path(f).resolve()).lower().startswith(root):
             del sys.modules[name]
+    importlib.invalidate_caches()
 
 
 def load_module(repo: Path, rel_file: str):

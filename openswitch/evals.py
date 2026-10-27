@@ -214,6 +214,24 @@ def _judge(site, plan_entry, prompt_msgs, ref_value, cand_value) -> tuple[float,
     return score, reason
 
 
+def comparable(value):
+    """A stable fingerprint of a return value: JSON-native values as-is, other objects by type only
+    (they may carry timings or raw responses that differ between runs)."""
+    if isinstance(value, (str, int, float, bool, type(None), list, dict)):
+        return _norm(value)
+    return f"<{type(value).__name__}>"
+
+
+def _probe(configs) -> dict | None:
+    """One real model answer and what the ORIGINAL app code returned for it. After the rewrite the same
+    answer is replayed through the migrated code; the result must not change."""
+    for c in configs:
+        for i, o in enumerate(c.outputs):
+            if o["ok"] and o.get("text"):
+                return {"input_index": i, "text": o["text"], "value": comparable(o["value"])}
+    return None
+
+
 def evaluate_site(site: CallSite, fn, inputs: list[dict], plan_entry: dict, log=print) -> dict:
     caps, kept = [], []
     for a in inputs:
@@ -283,7 +301,7 @@ def evaluate_site(site: CallSite, fn, inputs: list[dict], plan_entry: dict, log=
                                    else max(512, int(chosen.max_out * 2))),
         "reference_out_tokens": ref.avg_out, "ultra_fast_out_tokens": next(
             c.avg_out for c in configs if (c.model, c.thinking) == (llm.ULTRA, False)),
-        "avg_in_tokens": ref.avg_in, "failures": failures[:60],
+        "avg_in_tokens": ref.avg_in, "failures": failures[:60], "probe": _probe(configs),
         "samples": [{"input": o["input"], "value": o["value"], "score": o["score"], "reason": o["reason"]}
                     for o in chosen.outputs][:6],
     }

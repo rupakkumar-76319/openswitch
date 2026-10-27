@@ -41,27 +41,27 @@ picks the cheapest configuration that keeps quality, rewrites the code, runs the
   <div class="run-head"><h3>helpdesk-ai</h3>
   <a href="reports/helpdesk-ai.html">Full report →</a></div>
   <div class="kpis">
-    <div class="kpi"><b>91%</b><span>lower est. LLM cost<br>$5.18 → $0.47 per 1K calls</span></div>
+    <div class="kpi"><b>95%</b><span>lower est. LLM cost<br>$7.45 → $0.39 per 1K calls</span></div>
     <div class="kpi"><b>13/13 passed</b><span>the repo's own tests, unmodified</span></div>
-    <div class="kpi"><b>$0.30</b><span>spent by the agent, in 291s</span></div>
+    <div class="kpi"><b>$0.26</b><span>spent by the agent, in 476s</span></div>
   </div>
-  <div class="tbl"><table><tr><th>Call site</th><th>Was</th><th>Now</th><th>Score</th></tr><tr><td><code>classify_ticket</code></td><td>gpt-4o-mini</td><td><span class='pill'>Nano 30B fast</span></td><td>10.0</td></tr><tr><td><code>extract_order</code></td><td>gpt-4o</td><td><span class='pill'>Super 120B fast</span></td><td>9.4</td></tr><tr><td><code>refund_amount</code></td><td>o3-mini</td><td><span class='pill'>Nano 30B think</span></td><td>9.2</td></tr><tr><td><code>summarize_thread</code></td><td>gpt-4o</td><td><span class='pill'>Nano 30B fast</span></td><td>9.2</td></tr><tr><td><code>draft_reply</code></td><td>gpt-4o</td><td><span class='pill'>Nano 30B fast</span></td><td>10.0</td></tr><tr><td><code>translate_reply</code></td><td>claude-sonnet-4-5</td><td><span class='pill'>Nano 30B think</span></td><td>8.8</td></tr></table></div>
+  <div class="tbl"><table><tr><th>Call site</th><th>Was</th><th>Now</th><th>Score</th></tr><tr><td><code>classify_ticket</code></td><td>gpt-4o-mini</td><td><span class='pill'>Super 120B fast</span></td><td>9.3</td></tr><tr><td><code>extract_order</code></td><td>gpt-4o</td><td><span class='pill'>Nano 30B fast</span></td><td>9.7</td></tr><tr><td><code>refund_amount</code></td><td>o3-mini</td><td><span class='pill'>Nano 30B think</span></td><td>10.0</td></tr><tr><td><code>summarize_thread</code></td><td>gpt-4o</td><td><span class='pill'>Super 120B fast</span></td><td>9.7</td></tr><tr><td><code>draft_reply</code></td><td>gpt-4o</td><td><span class='pill'>Nano 30B think</span></td><td>9.5</td></tr><tr><td><code>translate_reply</code></td><td>claude-sonnet-4-5</td><td><span class='pill'>Nano 30B fast</span></td><td>10.0</td></tr></table></div>
 </section>
 <section class="run">
   <div class="run-head"><h3>issue-digest</h3>
   <a href="reports/issue-digest.html">Full report →</a></div>
   <div class="kpis">
-    <div class="kpi"><b>92%</b><span>lower est. LLM cost<br>$1.74 → $0.14 per 1K calls</span></div>
-    <div class="kpi"><b>1/1 passed</b><span>smoke tests written by OpenSwitch</span></div>
-    <div class="kpi"><b>$0.18</b><span>spent by the agent, in 131s</span></div>
+    <div class="kpi"><b>97%</b><span>lower est. LLM cost<br>$1.84 → $0.06 per 1K calls</span></div>
+    <div class="kpi"><b>2/2 passed</b><span>smoke tests written by OpenSwitch</span></div>
+    <div class="kpi"><b>$0.07</b><span>spent by the agent, in 99s</span></div>
   </div>
-  <div class="tbl"><table><tr><th>Call site</th><th>Was</th><th>Now</th><th>Score</th></tr><tr><td><code>complete</code></td><td>gpt-4o</td><td><span class='pill'>Nano 30B think</span></td><td>9.0</td></tr></table></div>
+  <div class="tbl"><table><tr><th>Call site</th><th>Was</th><th>Now</th><th>Score</th></tr><tr><td><code>complete</code></td><td>gpt-4o</td><td><span class='pill'>Nano 30B fast</span></td><td>8.3</td></tr></table></div>
 </section>
 
 <h2>All AI work runs on NVIDIA Nemotron</h2>
 <p class="mute">Every model call OpenSwitch makes goes through a Nebius Token Factory API key to Nemotron. No OpenAI or
 Anthropic key is used at any step. These are the totals from the ledgers of the two runs above.</p>
-<div class="run"><div class="tbl"><table><tr><th>Role</th><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost</th></tr><tr><td>Judge (checklist grading)</td><td>Nemotron 3 Ultra 550B</td><td>366</td><td>213,349</td><td>$0.245</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Nano 30B</td><td>172</td><td>57,848</td><td>$0.010</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Ultra 550B</td><td>172</td><td>54,717</td><td>$0.121</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Super 120B</td><td>172</td><td>49,103</td><td>$0.031</td></tr><tr><td>Researcher (reads Tavily results)</td><td>Nemotron 3 Super 120B</td><td>9</td><td>29,727</td><td>$0.010</td></tr><tr><td>Eval-input writer</td><td>Nemotron 3 Super 120B</td><td>18</td><td>29,447</td><td>$0.020</td></tr><tr><td>Planner</td><td>Nemotron 3 Ultra 550B</td><td>2</td><td>9,422</td><td>$0.020</td></tr><tr><td>Rewriter (writes the code changes)</td><td>Nemotron 3 Ultra 550B</td><td>2</td><td>8,016</td><td>$0.015</td></tr><tr><td>Test writer</td><td>Nemotron 3 Ultra 550B</td><td>1</td><td>3,637</td><td>$0.008</td></tr><tr><th>Total</th><th></th><th>914</th><th>455,266</th><th>$0.48</th></tr></table></div><p class="mute">The code changes in each migration were written by Nemotron 3 Ultra; see <a href="https://github.com/rupakkumar-76319/openswitch/tree/main/examples/reports">written-by-nemotron/</a> in the repo.</p></div>
+<div class="run"><div class="tbl"><table><tr><th>Role</th><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost</th></tr><tr><td>Judge (checklist grading)</td><td>Nemotron 3 Ultra 550B</td><td>236</td><td>137,318</td><td>$0.157</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Ultra 550B</td><td>108</td><td>37,945</td><td>$0.089</td></tr><tr><td>Researcher (reads Tavily results)</td><td>Nemotron 3 Super 120B</td><td>9</td><td>32,766</td><td>$0.011</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Super 120B</td><td>108</td><td>32,346</td><td>$0.022</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Nano 30B</td><td>108</td><td>31,088</td><td>$0.005</td></tr><tr><td>Eval-input writer</td><td>Nemotron 3 Super 120B</td><td>14</td><td>23,346</td><td>$0.016</td></tr><tr><td>Rewriter (writes the code changes)</td><td>Nemotron 3 Ultra 550B</td><td>2</td><td>8,068</td><td>$0.015</td></tr><tr><td>Planner</td><td>Nemotron 3 Ultra 550B</td><td>2</td><td>7,550</td><td>$0.014</td></tr><tr><td>Test writer</td><td>Nemotron 3 Ultra 550B</td><td>1</td><td>2,818</td><td>$0.005</td></tr><tr><th>Total</th><th></th><th>588</th><th>313,245</th><th>$0.34</th></tr></table></div><p class="mute">The code changes in each migration were written by Nemotron 3 Ultra; see <a href="https://github.com/rupakkumar-76319/openswitch/tree/main/examples/reports">written-by-nemotron/</a> in the repo.</p></div>
 
 <h2>How it works</h2>
 <div class="steps">
@@ -75,8 +75,8 @@ Anthropic key is used at any step. These are the totals from the ledgers of the 
 
 <h2>Why it matters</h2>
 <ul>
-<li><b>Measured, not guessed.</b> On refund-policy math, Nemotron Nano <em>with thinking</em> scored 9.2/10 while Super <em>without</em> thinking scored 3.3/10. Thinking is a choice per call, and OpenSwitch measures it.</li>
-<li><b>Spends where it matters.</b> When a much cheaper config narrowly misses, OpenSwitch doubles the sample for that call before deciding. In the Issue Digest run, that moved the call from Ultra to Nano with thinking: 10x cheaper, still passing.</li>
+<li><b>Measured, not guessed.</b> On refund-policy math, Nemotron Nano <em>with thinking</em> scored 10/10 while Super <em>without</em> thinking scored 1.7/10. Thinking is a choice per call, and OpenSwitch measures it.</li>
+<li><b>Spends where it matters.</b> When a much cheaper config narrowly misses, OpenSwitch doubles the sample for that call before deciding. In the HelpDesk run, that moved <code>draft_reply</code> from Super to Nano (both with thinking): about 4x cheaper, still passing.</li>
 <li><b>Honest output.</b> The report shows every configuration's score, flags calls that cost more after the switch, and lists the failure cases it found.</li>
 <li><b>Nothing to trust blindly.</b> You get a branch to review: a normal diff, a PR description and the test log.</li>
 </ul>

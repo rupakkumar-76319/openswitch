@@ -1,76 +1,94 @@
 # Written by OpenSwitch: live smoke tests for the migrated LLM calls.
-"""Smoke test for the LLM client after migration to Nemotron on Nebius.
-
-This test performs a live call to the Nebius Token Factory API and validates the
-Completion contract. It requires the NEBIUS_API_KEY environment variable to be set.
-"""
-import os
-import json
+"""Smoke tests for the digest function after migration to Nemotron on Nebius."""
 import pytest
-from llm_client import complete, Completion, CONFIG
+from digest import digest
 
-# Skip the test if the API key is not configured, allowing the suite to run in CI without credentials.
-@pytest.mark.skipif_no_nebius_key
-def test_complete_live_smoke():
-    """Verify that complete() returns a well‑formed Completion with non‑empty digest text."""
-    # Use the exact model and system prompt the application uses in production.
-    model = CONFIG.get("llm", "model")
-    system = CONFIG.get("prompt", "system")
 
-    # Realistic payload: two issues with titles, labels, bodies, and comments.
-    issues = [
-        {
-            "issue": {
-                "title": "Add dark mode toggle",
-                "state": "open",
-                "labels": ["enhancement", "ui"],
-                "user": "carol_designer",
-                "created_at": "2024-08-22T14:12:00Z",
-                "body": "Users have asked for a dark mode option in the settings menu.",
-                "comments": [],
+class TestDigestSmoke:
+    """Live tests that exercise the real LLM pipeline."""
+
+    def test_digest_crash_large_csv(self):
+        """Digest a realistic bug report with comments."""
+        result = digest(
+            **{
+                "issue": {
+                    "title": "Crash when opening large CSV file",
+                    "state": "open",
+                    "labels": ["bug", "high-priority"],
+                    "user": "alice_dev",
+                    "created_at": "2024-09-10T14:32:00Z",
+                    "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
+                    "comments": [
+                        {
+                            "user": "bob_maintainer",
+                            "created_at": "2024-09-11T09:05:00Z",
+                            "body": "Can you share the exact file and stack trace?",
+                        },
+                        {
+                            "user": "alice_dev",
+                            "created_at": "2024-09-11T10:20:00Z",
+                            "body": "Attached is the file and trace: ...",
+                        },
+                    ],
+                }
             }
-        },
-        {
-            "issue": {
-                "title": "Fix login redirect loop",
-                "state": "open",
-                "labels": ["bug", "auth"],
-                "user": "alice_dev",
-                "created_at": "2024-09-25T08:30:00Z",
-                "body": "After submitting credentials, the user is redirected back to login page indefinitely.",
-                "comments": [
-                    {"user": "bob_support", "created_at": "2024-09-25T09:00:00Z", "body": "Can you reproduce on incognito?"},
-                    {"user": "alice_dev", "created_at": "2024-09-25T09:05:00Z", "body": "Yes, happens in Chrome and Firefox."},
-                ],
+        )
+
+        # Contract: non-empty string containing the four required headings
+        assert isinstance(result, str), "digest must return a string"
+        assert result.strip(), "digest output must not be empty"
+
+        # Required level-2 headings (case-insensitive, flexible spacing)
+        lower = result.lower()
+        assert "## status" in lower or "## status" in lower.replace("**", ""), "Missing 'Status' heading"
+        assert "## problem" in lower, "Missing 'Problem' heading"
+        assert "## details" in lower, "Missing 'Details' heading"
+        assert "## next step" in lower, "Missing 'Next step' heading"
+
+        # Each section should have some content after its heading
+        for heading in ["status", "problem", "details", "next step"]:
+            idx = lower.find(f"## {heading}")
+            assert idx >= 0, f"Heading '{heading}' not found"
+            # Look for non-whitespace after the heading line
+            after = result[idx:].split("\n", 1)
+            if len(after) > 1:
+                assert after[1].strip(), f"Section '{heading}' has no content"
+
+    def test_digest_typo_documentation(self):
+        """Digest a closed documentation issue with no comments."""
+        result = digest(
+            **{
+                "issue": {
+                    "title": "Typo in documentation",
+                    "state": "closed",
+                    "labels": ["documentation", "good-first-issue"],
+                    "user": "doc_writer",
+                    "created_at": "2024-08-01T08:00:00Z",
+                    "body": "On page 12 of the README, the word 'recieve' should be 'receive'.",
+                    "comments": [],
+                }
             }
-        },
-    ]
-    user = json.dumps(issues, ensure_ascii=False, indent=2)
+        )
 
-    # Live call – no mocks.
-    result = complete(model=model, system=system, user=user)
+        assert isinstance(result, str), "digest must return a string"
+        assert result.strip(), "digest output must not be empty"
 
-    # Contract assertions (robust to wording changes in the markdown digest).
-    assert isinstance(result, Completion), "Expected a Completion dataclass instance"
-    assert result.model == model, "Model name should match the configured model"
-    assert isinstance(result.text, str) and result.text.strip(), "Digest text must be a non‑empty string"
-    assert isinstance(result.input_tokens, int) and result.input_tokens > 0, "Input tokens should be a positive integer"
-    assert isinstance(result.output_tokens, int) and result.output_tokens > 0, "Output tokens should be a positive integer"
-    assert isinstance(result.seconds, float) and result.seconds > 0, "Latency should be a positive float"
-    assert isinstance(result.raw, dict), "Raw response should be a dictionary"
+        lower = result.lower()
+        assert "## status" in lower, "Missing 'Status' heading"
+        assert "## problem" in lower, "Missing 'Problem' heading"
+        assert "## details" in lower, "Missing 'Details' heading"
+        assert "## next step" in lower, "Missing 'Next step' heading"
 
-    # Cost accounting – our model is in PRICES, so cost must be a non‑negative float.
-    cost = result.cost
-    assert isinstance(cost, float) and cost >= 0, "Cost should be a non‑negative float for known models"
+        # Verify state and labels appear in Status section
+        assert "closed" in lower, "Status should reflect closed state"
+        assert "documentation" in lower, "Status should include documentation label"
+        assert "good-first-issue" in lower, "Status should include good-first-issue label"
+        assert "doc_writer" in lower, "Status should include reporter"
 
-
-# Helper marker: automatically skip if the environment variable is missing.
-def pytest_configure(config):
-    config.addinivalue_line("markers", "skipif_no_nebius_key: skip test when NEBIUS_API_KEY is not set")
-
-
-@pytest.fixture(autouse=True)
-def _skip_if_no_key(request):
-    if request.node.get_closest_marker("skipif_no_nebius_key"):
-        if not os.getenv("NEBIUS_API_KEY"):
-            pytest.skip("NEBIUS_API_KEY not set – skipping live LLM call")
+        # Problem should be concise (one sentence, <= 40 words approx)
+        problem_idx = lower.find("## problem")
+        details_idx = lower.find("## details")
+        problem_section = result[problem_idx:details_idx] if details_idx > problem_idx else result[problem_idx:]
+        problem_words = problem_section.split()
+        # Allow some flexibility but ensure it's not a wall of text
+        assert len(problem_words) < 100, "Problem section should be concise"

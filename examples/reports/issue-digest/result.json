@@ -8,276 +8,163 @@
       "source_model": "gpt-4o",
       "provider": "openai",
       "plan": {
-        "purpose": "Generate a structured markdown digest of a GitHub issue (title, body, comments) with four sections: Status, Problem, Details, Next step, for maintainer triage.",
-        "output_contract": "Downstream code (digest.py:digest) only consumes the `.text` field of the returned Completion object \u2014 a single string containing the markdown digest. Token counts, cost, latency, and raw response are computed but unused.",
+        "purpose": "Generate a structured markdown digest of a GitHub issue (title, body, comments) with four sections: Status, Problem, Details, Next step. Used by maintainers to quickly triage issues.",
+        "output_contract": "Returns a Completion dataclass; downstream code (digest.digest) only reads the `.text` field expecting markdown with exactly four ##-level headings in a fixed order. The raw response dict and token counts are used for logging/cost accounting but not parsed.",
         "difficulty": "low",
         "rubric": [
-          "Output is valid markdown with exactly four ##-level headings in order: Status, Problem, Details, Next step",
-          "Problem section is \u226440 words and one sentence",
-          "Details section quotes relevant code/error from the issue",
-          "Next step names a single concrete maintainer action",
-          "No facts invented beyond what appears in the issue text"
+          "Output contains exactly four ## headings: Status, Problem, Details, Next step in that order",
+          "Problem section is one sentence \u226440 words",
+          "Details section quotes relevant code or error from the issue",
+          "Next step names a single concrete action for a maintainer",
+          "No hallucinated facts absent from the input issue"
         ],
         "risks": [
-          "Model allow-list hard-coded to `model.startswith('gpt')`",
-          "Pricing table (PRICES) only contains GPT models; cost property returns -1.0 for unknown models",
-          "OpenAI-specific response shape: `resp.choices[0].message.content`, `resp.usage.prompt_tokens`, `resp.usage.completion_tokens`",
-          "Environment variable `OPENAI_API_KEY` required for client init",
-          "Parameter `max_tokens` may map to a different name (e.g., `max_output_tokens`) on Nemotron",
-          "Temperature fixed at 0.0 \u2014 ensure new provider honors deterministic sampling"
+          "Nemotron may not support temperature=0.0 (deterministic output); may need small non-zero value",
+          "OpenAI-specific `usage.prompt_tokens` / `usage.completion_tokens` fields may differ in Nemotron response shape",
+          "Model allow-list check `model.startswith('gpt')` will block Nemotron model IDs",
+          "Hardcoded PRICES dict only has GPT models; cost accounting will return -1.0 until updated",
+          "Max output tokens (900) may exceed Nemotron context limits for some models"
         ],
         "effective_model": "gpt-4o",
         "related_files": [
-          "settings.ini (model, max_output_tokens, system prompt)",
-          "llm_client.py (model validation, PRICES table, _client() factory, Completion.cost)",
-          "requirements.txt (openai dependency)",
-          "digest.py (caller; reads model & prompt from CONFIG)"
+          "llm_client.py (model allow-list, PRICES table, _client() factory, complete() signature)",
+          "settings.ini (llm.model, llm.max_output_tokens, prompt.system)",
+          "digest.py (imports complete, passes CONFIG values)",
+          "requirements.txt (openai SDK dependency; may need replacement or supplement)",
+          "README / docs (OPENAI_API_KEY env var name, model naming conventions)"
         ],
         "eval_entrypoint": "digest.py:digest"
       },
       "checks": [
         "Every fact, number, label and extracted value is correct for this input (the reference is a hint from a strong model, but it can be wrong)",
-        "Output is valid markdown with exactly four ##-level headings in order: Status, Problem, Details, Next step",
-        "Problem section is \u226440 words and one sentence",
-        "Details section quotes relevant code/error from the issue",
-        "Next step names a single concrete maintainer action",
-        "No facts invented beyond what appears in the issue text"
+        "Output contains exactly four ## headings: Status, Problem, Details, Next step in that order",
+        "Problem section is one sentence \u226440 words",
+        "Details section quotes relevant code or error from the issue",
+        "Next step names a single concrete action for a maintainer",
+        "No hallucinated facts absent from the input issue"
       ],
-      "n_inputs": 12,
+      "n_inputs": 6,
       "inputs": [
         {
           "issue": {
-            "title": "Add dark mode toggle",
-            "state": "open",
-            "labels": [
-              "enhancement",
-              "ui"
-            ],
-            "user": "carol_designer",
-            "created_at": "2024-08-22T14:12:00Z",
-            "body": "Users have asked for a dark mode option in the settings menu.",
-            "comments": []
-          }
-        },
-        {
-          "issue": {
-            "title": "Fix login redirect loop",
+            "title": "Crash when opening large CSV file",
             "state": "open",
             "labels": [
               "bug",
-              "auth"
+              "high-priority"
             ],
             "user": "alice_dev",
-            "created_at": "2024-09-25T08:30:00Z",
-            "body": "After submitting credentials, the user is redirected back to login page indefinitely.",
-            "comments": [
-              {
-                "user": "bob_support",
-                "created_at": "2024-09-25T09:00:00Z",
-                "body": "Can you reproduce on incognito?"
-              },
-              {
-                "user": "alice_dev",
-                "created_at": "2024-09-25T09:05:00Z",
-                "body": "Yes, happens in Chrome and Firefox."
-              }
-            ]
-          }
-        },
-        {
-          "issue": {
-            "title": "Update README with contribution guidelines",
-            "state": "open",
-            "labels": [
-              "documentation"
-            ],
-            "user": "doc_writer",
-            "created_at": "2024-09-20T12:00:00Z",
-            "body": null,
-            "comments": []
-          }
-        },
-        {
-          "issue": {
-            "title": "Handle negative numbers in tax calculation",
-            "state": "closed",
-            "labels": [],
-            "user": "42",
-            "created_at": "2024-09-15T14:22:11-04:00",
-            "body": "When a negative amount is entered, the tax becomes negative which breaks totals.",
-            "comments": [
-              {
-                "user": "math_reviewer",
-                "created_at": "2024-09-15T15:00:00Z",
-                "body": "Should we clamp to zero or show error?"
-              },
-              {
-                "user": "42",
-                "created_at": "2024-09-15T15:10:00Z",
-                "body": "Clamp to zero and show warning."
-              }
-            ]
-          }
-        },
-        {
-          "issue": {
-            "title": "Add unit tests for edge case parser",
-            "state": "open",
-            "labels": [
-              "test",
-              "good first issue"
-            ],
-            "user": "ci_bot",
-            "created_at": "2024-09-24T00:00:00Z",
-            "body": "Parser fails when input contains Unicode surrogate pairs.",
-            "comments": [
-              {
-                "user": "lead_dev",
-                "created_at": "2024-09-24T01:00:00Z",
-                "body": "Please add test case U+1F600 (grinning emoji)."
-              },
-              {
-                "user": "ci_bot",
-                "created_at": "2024-09-24T01:05:00Z",
-                "body": "Added test, now passes."
-              },
-              {
-                "user": "lead_dev",
-                "created_at": "2024-09-24T01:10:00Z",
-                "body": "LGTM, merge when ready."
-              }
-            ]
-          }
-        },
-        {
-          "issue": {
-            "title": "Typo in error message",
-            "state": "open",
-            "labels": [
-              "trivial"
-            ],
-            "user": "anon_user",
-            "created_at": "2024-09-23T18:45:00Z",
-            "body": "",
-            "comments": []
-          }
-        },
-        {
-          "issue": {
-            "title": "Crash when opening file with .xyz extension",
-            "state": "open",
-            "labels": [
-              "bug",
-              "crash"
-            ],
-            "user": "alice_dev",
-            "created_at": "2024-09-15T08:30:00Z",
-            "body": "When I try to open a .xyz file using the app, it crashes immediately after showing the loading spinner.",
+            "created_at": "2024-09-10T14:32:00Z",
+            "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
             "comments": [
               {
                 "user": "bob_maintainer",
-                "created_at": "2024-09-15T09:05:00Z",
-                "body": "Can you share the exact file? Also which OS?"
+                "created_at": "2024-09-11T09:05:00Z",
+                "body": "Can you share the exact file and stack trace?"
               },
               {
                 "user": "alice_dev",
-                "created_at": "2024-09-15T09:20:00Z",
-                "body": "File attached: test.xyz. OS: Ubuntu 22.04."
+                "created_at": "2024-09-11T10:20:00Z",
+                "body": "Attached is the file and trace: ..."
               }
             ]
-          }
-        },
-        {
-          "issue": {
-            "title": "Add dark mode toggle",
-            "state": "open",
-            "labels": [
-              "enhancement",
-              "ui"
-            ],
-            "user": "carol_designer",
-            "created_at": "2024-08-20T14:12:00Z",
-            "body": "It would be great to have a dark mode option in the settings menu.",
-            "comments": []
           }
         },
         {
           "issue": {
             "title": "Typo in documentation",
-            "state": "open",
-            "labels": [],
-            "user": "dave_contrib",
-            "created_at": "2024-09-01T11:00:00Z",
-            "body": null,
-            "comments": [
-              {
-                "user": "eve_reviewer",
-                "created_at": "2024-09-02T10:30:00Z",
-                "body": "Found the typo on page 42, line 12: 'recieve' should be 'receive'."
-              }
-            ]
-          }
-        },
-        {
-          "issue": {
-            "title": "Performance regression in v2.3",
             "state": "closed",
             "labels": [
-              "performance",
-              "regression",
-              "v2.3"
+              "documentation",
+              "good-first-issue"
             ],
-            "user": "frank_user",
-            "created_at": "2024-07-10T07:45:00Z",
-            "body": "After upgrading to v2.3, the startup time increased from 2s to ~8s.",
-            "comments": [
-              {
-                "user": "grace_maintainer",
-                "created_at": "2024-07-11T09:00:00Z",
-                "body": "Did you enable any new plugins?"
-              },
-              {
-                "user": "frank_user",
-                "created_at": "2024-07-11T10:15:00Z",
-                "body": "No, clean install."
-              },
-              {
-                "user": "henry_dev",
-                "created_at": "2024-07-12T14:20:00Z",
-                "body": "We identified a bug in the asset loader; fix will be in v2.3.1."
-              }
-            ]
-          }
-        },
-        {
-          "issue": {
-            "title": "UI glitch on high DPI screens",
-            "state": "open",
-            "labels": [
-              "ui"
-            ],
-            "user": "",
-            "created_at": "2024-09-10T00:00:00Z",
-            "body": "On my 4K monitor, buttons appear twice their size.",
+            "user": "doc_writer",
+            "created_at": "2024-08-01T08:00:00Z",
+            "body": "On page 12 of the README, the word 'recieve' should be 'receive'.",
             "comments": []
           }
         },
         {
           "issue": {
-            "title": "Incorrect calculation for tax rate 0.075%",
+            "title": "Add dark mode toggle",
+            "state": "open",
+            "labels": [
+              "enhancement",
+              "ui"
+            ],
+            "user": "ux_designer",
+            "created_at": "2024-07-15T11:30:00Z",
+            "body": null,
+            "comments": [
+              {
+                "user": "ux_designer",
+                "created_at": "2024-07-15T11:35:00Z",
+                "body": "I think we need a dark mode switch in the settings."
+              },
+              {
+                "user": "dev_lead",
+                "created_at": "2024-07-16T14:00:00Z",
+                "body": "We can implement using CSS prefers-color-scheme. Let's discuss scope."
+              },
+              {
+                "user": "ux_designer",
+                "created_at": "2024-07-17T09:10:00Z",
+                "body": "Agree, start with toggle and later add theme persistence."
+              }
+            ]
+          }
+        },
+        {
+          "issue": {
+            "title": "Unexpected behavior after update",
+            "state": "open",
+            "labels": [],
+            "user": "",
+            "created_at": "2024-09-20T03:12:00Z",
+            "body": null,
+            "comments": []
+          }
+        },
+        {
+          "issue": {
+            "title": "App freezes intermittently",
+            "state": "open",
+            "labels": [
+              "bug"
+            ],
+            "user": "tester",
+            "created_at": "2024-09-05T16:45:00Z",
+            "body": "Sometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.",
+            "comments": [
+              {
+                "user": "senior_dev",
+                "created_at": "2024-09-06T10:00:00Z",
+                "body": "Check if there are any long-running tasks on the main thread."
+              },
+              {
+                "user": "tester",
+                "created_at": "2024-09-06T11:20:00Z",
+                "body": "I profiled and saw a spike in memory usage right before freeze."
+              }
+            ]
+          }
+        },
+        {
+          "issue": {
+            "title": "Integer overflow when processing >2^31 items",
             "state": "open",
             "labels": [
               "bug",
-              "finance"
+              "performance"
             ],
-            "user": "iota_analyst",
-            "created_at": "2024-09-05T16:40:00Z",
-            "body": "When applying a tax rate of 0.075% to an amount of $1000, the system returns $0.75 instead of the expected $0.75? Actually 0.075% of 1000 is 0.75, but the UI shows 0.08 due to rounding.",
+            "user": "researcher",
+            "created_at": "2024-09-18T22:05:00Z",
+            "body": "When the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.",
             "comments": [
               {
-                "user": "kappa_dev",
-                "created_at": "2024-09-06T09:10:00Z",
-                "body": "Looks like a formatting issue; the value is being displayed with two decimal places."
+                "user": "maintainer",
+                "created_at": "2024-09-19T08:30:00Z",
+                "body": "We should change the counter to use 64-bit integer or check bounds."
               }
             ]
           }
@@ -291,7 +178,7 @@
           },
           {
             "role": "user",
-            "content": "Title: Add dark mode toggle\nState: open\nLabels: enhancement, ui\nReported by carol_designer at 2024-08-22T14:12:00Z\n\nUsers have asked for a dark mode option in the settings menu."
+            "content": "Title: Crash when opening large CSV file\nState: open\nLabels: bug, high-priority\nReported by alice_dev at 2024-09-10T14:32:00Z\n\nWhen I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.\n\nComment by bob_maintainer at 2024-09-11T09:05:00Z:\nCan you share the exact file and stack trace?\n\nComment by alice_dev at 2024-09-11T10:20:00Z:\nAttached is the file and trace: ..."
           }
         ],
         [
@@ -301,7 +188,7 @@
           },
           {
             "role": "user",
-            "content": "Title: Fix login redirect loop\nState: open\nLabels: bug, auth\nReported by alice_dev at 2024-09-25T08:30:00Z\n\nAfter submitting credentials, the user is redirected back to login page indefinitely.\n\nComment by bob_support at 2024-09-25T09:00:00Z:\nCan you reproduce on incognito?\n\nComment by alice_dev at 2024-09-25T09:05:00Z:\nYes, happens in Chrome and Firefox."
+            "content": "Title: Typo in documentation\nState: closed\nLabels: documentation, good-first-issue\nReported by doc_writer at 2024-08-01T08:00:00Z\n\nOn page 12 of the README, the word 'recieve' should be 'receive'."
           }
         ],
         [
@@ -311,7 +198,7 @@
           },
           {
             "role": "user",
-            "content": "Title: Update README with contribution guidelines\nState: open\nLabels: documentation\nReported by doc_writer at 2024-09-20T12:00:00Z\n\n"
+            "content": "Title: Add dark mode toggle\nState: open\nLabels: enhancement, ui\nReported by ux_designer at 2024-07-15T11:30:00Z\n\n\n\nComment by ux_designer at 2024-07-15T11:35:00Z:\nI think we need a dark mode switch in the settings.\n\nComment by dev_lead at 2024-07-16T14:00:00Z:\nWe can implement using CSS prefers-color-scheme. Let's discuss scope.\n\nComment by ux_designer at 2024-07-17T09:10:00Z:\nAgree, start with toggle and later add theme persistence."
           }
         ],
         [
@@ -321,7 +208,7 @@
           },
           {
             "role": "user",
-            "content": "Title: Handle negative numbers in tax calculation\nState: closed\nLabels: \nReported by 42 at 2024-09-15T14:22:11-04:00\n\nWhen a negative amount is entered, the tax becomes negative which breaks totals.\n\nComment by math_reviewer at 2024-09-15T15:00:00Z:\nShould we clamp to zero or show error?\n\nComment by 42 at 2024-09-15T15:10:00Z:\nClamp to zero and show warning."
+            "content": "Title: Unexpected behavior after update\nState: open\nLabels: \nReported by  at 2024-09-20T03:12:00Z\n\n"
           }
         ],
         [
@@ -331,7 +218,7 @@
           },
           {
             "role": "user",
-            "content": "Title: Add unit tests for edge case parser\nState: open\nLabels: test, good first issue\nReported by ci_bot at 2024-09-24T00:00:00Z\n\nParser fails when input contains Unicode surrogate pairs.\n\nComment by lead_dev at 2024-09-24T01:00:00Z:\nPlease add test case U+1F600 (grinning emoji).\n\nComment by ci_bot at 2024-09-24T01:05:00Z:\nAdded test, now passes.\n\nComment by lead_dev at 2024-09-24T01:10:00Z:\nLGTM, merge when ready."
+            "content": "Title: App freezes intermittently\nState: open\nLabels: bug\nReported by tester at 2024-09-05T16:45:00Z\n\nSometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.\n\nComment by senior_dev at 2024-09-06T10:00:00Z:\nCheck if there are any long-running tasks on the main thread.\n\nComment by tester at 2024-09-06T11:20:00Z:\nI profiled and saw a spike in memory usage right before freeze."
           }
         ],
         [
@@ -341,67 +228,7 @@
           },
           {
             "role": "user",
-            "content": "Title: Typo in error message\nState: open\nLabels: trivial\nReported by anon_user at 2024-09-23T18:45:00Z\n\n"
-          }
-        ],
-        [
-          {
-            "role": "system",
-            "content": "You are a senior engineer triaging GitHub issues.\nFrom the issue text and comments, produce a markdown digest with four level-2 headings, in this order:\n\"Status\" (open/closed, labels, who reported it and when),\n\"Problem\" (one sentence, at most 40 words),\n\"Details\" (what fails, with the relevant code or error quoted),\n\"Next step\" (the single most useful action for a maintainer).\nUse short, clear sentences. Do not invent facts that are not in the issue."
-          },
-          {
-            "role": "user",
-            "content": "Title: Crash when opening file with .xyz extension\nState: open\nLabels: bug, crash\nReported by alice_dev at 2024-09-15T08:30:00Z\n\nWhen I try to open a .xyz file using the app, it crashes immediately after showing the loading spinner.\n\nComment by bob_maintainer at 2024-09-15T09:05:00Z:\nCan you share the exact file? Also which OS?\n\nComment by alice_dev at 2024-09-15T09:20:00Z:\nFile attached: test.xyz. OS: Ubuntu 22.04."
-          }
-        ],
-        [
-          {
-            "role": "system",
-            "content": "You are a senior engineer triaging GitHub issues.\nFrom the issue text and comments, produce a markdown digest with four level-2 headings, in this order:\n\"Status\" (open/closed, labels, who reported it and when),\n\"Problem\" (one sentence, at most 40 words),\n\"Details\" (what fails, with the relevant code or error quoted),\n\"Next step\" (the single most useful action for a maintainer).\nUse short, clear sentences. Do not invent facts that are not in the issue."
-          },
-          {
-            "role": "user",
-            "content": "Title: Add dark mode toggle\nState: open\nLabels: enhancement, ui\nReported by carol_designer at 2024-08-20T14:12:00Z\n\nIt would be great to have a dark mode option in the settings menu."
-          }
-        ],
-        [
-          {
-            "role": "system",
-            "content": "You are a senior engineer triaging GitHub issues.\nFrom the issue text and comments, produce a markdown digest with four level-2 headings, in this order:\n\"Status\" (open/closed, labels, who reported it and when),\n\"Problem\" (one sentence, at most 40 words),\n\"Details\" (what fails, with the relevant code or error quoted),\n\"Next step\" (the single most useful action for a maintainer).\nUse short, clear sentences. Do not invent facts that are not in the issue."
-          },
-          {
-            "role": "user",
-            "content": "Title: Typo in documentation\nState: open\nLabels: \nReported by dave_contrib at 2024-09-01T11:00:00Z\n\n\n\nComment by eve_reviewer at 2024-09-02T10:30:00Z:\nFound the typo on page 42, line 12: 'recieve' should be 'receive'."
-          }
-        ],
-        [
-          {
-            "role": "system",
-            "content": "You are a senior engineer triaging GitHub issues.\nFrom the issue text and comments, produce a markdown digest with four level-2 headings, in this order:\n\"Status\" (open/closed, labels, who reported it and when),\n\"Problem\" (one sentence, at most 40 words),\n\"Details\" (what fails, with the relevant code or error quoted),\n\"Next step\" (the single most useful action for a maintainer).\nUse short, clear sentences. Do not invent facts that are not in the issue."
-          },
-          {
-            "role": "user",
-            "content": "Title: Performance regression in v2.3\nState: closed\nLabels: performance, regression, v2.3\nReported by frank_user at 2024-07-10T07:45:00Z\n\nAfter upgrading to v2.3, the startup time increased from 2s to ~8s.\n\nComment by grace_maintainer at 2024-07-11T09:00:00Z:\nDid you enable any new plugins?\n\nComment by frank_user at 2024-07-11T10:15:00Z:\nNo, clean install.\n\nComment by henry_dev at 2024-07-12T14:20:00Z:\nWe identified a bug in the asset loader; fix will be in v2.3.1."
-          }
-        ],
-        [
-          {
-            "role": "system",
-            "content": "You are a senior engineer triaging GitHub issues.\nFrom the issue text and comments, produce a markdown digest with four level-2 headings, in this order:\n\"Status\" (open/closed, labels, who reported it and when),\n\"Problem\" (one sentence, at most 40 words),\n\"Details\" (what fails, with the relevant code or error quoted),\n\"Next step\" (the single most useful action for a maintainer).\nUse short, clear sentences. Do not invent facts that are not in the issue."
-          },
-          {
-            "role": "user",
-            "content": "Title: UI glitch on high DPI screens\nState: open\nLabels: ui\nReported by  at 2024-09-10T00:00:00Z\n\nOn my 4K monitor, buttons appear twice their size."
-          }
-        ],
-        [
-          {
-            "role": "system",
-            "content": "You are a senior engineer triaging GitHub issues.\nFrom the issue text and comments, produce a markdown digest with four level-2 headings, in this order:\n\"Status\" (open/closed, labels, who reported it and when),\n\"Problem\" (one sentence, at most 40 words),\n\"Details\" (what fails, with the relevant code or error quoted),\n\"Next step\" (the single most useful action for a maintainer).\nUse short, clear sentences. Do not invent facts that are not in the issue."
-          },
-          {
-            "role": "user",
-            "content": "Title: Incorrect calculation for tax rate 0.075%\nState: open\nLabels: bug, finance\nReported by iota_analyst at 2024-09-05T16:40:00Z\n\nWhen applying a tax rate of 0.075% to an amount of $1000, the system returns $0.75 instead of the expected $0.75? Actually 0.075% of 1000 is 0.75, but the UI shows 0.08 due to rounding.\n\nComment by kappa_dev at 2024-09-06T09:10:00Z:\nLooks like a formatting issue; the value is being displayed with two decimal places."
+            "content": "Title: Integer overflow when processing >2^31 items\nState: open\nLabels: bug, performance\nReported by researcher at 2024-09-18T22:05:00Z\n\nWhen the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.\n\nComment by maintainer at 2024-09-19T08:30:00Z:\nWe should change the counter to use 64-bit integer or check bounds."
           }
         ]
       ],
@@ -411,27 +238,27 @@
           "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
           "thinking": false,
           "functional": 1.0,
-          "mean_score": 6.67,
-          "min_score": 3.33,
-          "avg_in": 238,
-          "avg_out": 135,
-          "max_out": 251,
-          "cost_per_1k": 0.04676,
-          "avg_seconds": 1.97,
-          "passes": false
+          "mean_score": 8.33,
+          "min_score": 5.0,
+          "avg_in": 246,
+          "avg_out": 181,
+          "max_out": 246,
+          "cost_per_1k": 0.05827,
+          "avg_seconds": 3.24,
+          "passes": true
         },
         {
           "config": "Nano 30B think",
           "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
           "thinking": true,
           "functional": 1.0,
-          "mean_score": 9.03,
-          "min_score": 6.67,
-          "avg_in": 238,
-          "avg_out": 532,
-          "max_out": 720,
-          "cost_per_1k": 0.14206,
-          "avg_seconds": 3.34,
+          "mean_score": 8.61,
+          "min_score": 8.33,
+          "avg_in": 246,
+          "avg_out": 507,
+          "max_out": 729,
+          "cost_per_1k": 0.13647,
+          "avg_seconds": 5.1,
           "passes": true
         },
         {
@@ -439,41 +266,41 @@
           "model": "nvidia/nemotron-3-super-120b-a12b",
           "thinking": false,
           "functional": 1.0,
-          "mean_score": 7.64,
-          "min_score": 5.0,
-          "avg_in": 238,
-          "avg_out": 112,
-          "max_out": 154,
-          "cost_per_1k": 0.1722,
-          "avg_seconds": 1.58,
-          "passes": false
+          "mean_score": 8.05,
+          "min_score": 6.67,
+          "avg_in": 246,
+          "avg_out": 125,
+          "max_out": 139,
+          "cost_per_1k": 0.18615,
+          "avg_seconds": 11.11,
+          "passes": true
         },
         {
           "config": "Super 120B think",
           "model": "nvidia/nemotron-3-super-120b-a12b",
           "thinking": true,
           "functional": 1.0,
-          "mean_score": 8.33,
-          "min_score": 6.67,
-          "avg_in": 238,
-          "avg_out": 407,
-          "max_out": 563,
-          "cost_per_1k": 0.43793,
-          "avg_seconds": 3.28,
-          "passes": true
+          "mean_score": 6.67,
+          "min_score": 3.33,
+          "avg_in": 246,
+          "avg_out": 421,
+          "max_out": 548,
+          "cost_per_1k": 0.4527,
+          "avg_seconds": 3.32,
+          "passes": false
         },
         {
           "config": "Ultra 550B fast",
           "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
           "thinking": false,
           "functional": 1.0,
-          "mean_score": 8.75,
+          "mean_score": 8.05,
           "min_score": 6.67,
-          "avg_in": 238,
-          "avg_out": 114,
-          "max_out": 157,
-          "cost_per_1k": 0.58025,
-          "avg_seconds": 0.96,
+          "avg_in": 246,
+          "avg_out": 123,
+          "max_out": 152,
+          "cost_per_1k": 0.615,
+          "avg_seconds": 0.99,
           "passes": true
         },
         {
@@ -481,461 +308,513 @@
           "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
           "thinking": true,
           "functional": 1.0,
-          "mean_score": 8.75,
+          "mean_score": 8.61,
           "min_score": 6.67,
-          "avg_in": 238,
-          "avg_out": 439,
-          "max_out": 851,
-          "cost_per_1k": 1.55575,
-          "avg_seconds": 1.97,
+          "avg_in": 246,
+          "avg_out": 356,
+          "max_out": 622,
+          "cost_per_1k": 1.3145,
+          "avg_seconds": 1.62,
           "passes": true
         }
       ],
       "chosen": {
-        "config": "Nano 30B think",
+        "config": "Nano 30B fast",
         "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
-        "thinking": true,
+        "thinking": false,
         "functional": 1.0,
-        "mean_score": 9.03,
-        "min_score": 6.67,
-        "avg_in": 238,
-        "avg_out": 532,
-        "max_out": 720,
-        "cost_per_1k": 0.14206,
-        "avg_seconds": 3.34,
+        "mean_score": 8.33,
+        "min_score": 5.0,
+        "avg_in": 246,
+        "avg_out": 181,
+        "max_out": 246,
+        "cost_per_1k": 0.05827,
+        "avg_seconds": 3.24,
         "passes": true
       },
-      "best_score": 9.026666666666666,
-      "threshold": 8.276666666666666,
-      "recommended_max_tokens": 2160,
-      "reference_out_tokens": 439.25,
-      "ultra_fast_out_tokens": 114.08333333333333,
-      "avg_in_tokens": 238.0,
+      "best_score": 8.61,
+      "threshold": 7.859999999999999,
+      "recommended_max_tokens": 512,
+      "reference_out_tokens": 356.0,
+      "ultra_fast_out_tokens": 122.83333333333333,
+      "avg_in_tokens": 246.5,
       "failures": [
         {
           "config": "Nano 30B fast",
           "input": {
             "issue": {
+              "title": "Crash when opening large CSV file",
+              "state": "open",
+              "labels": [
+                "bug",
+                "high-priority"
+              ],
+              "user": "alice_dev",
+              "created_at": "2024-09-10T14:32:00Z",
+              "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
+              "comments": [
+                {
+                  "user": "bob_maintainer",
+                  "created_at": "2024-09-11T09:05:00Z",
+                  "body": "Can you share the exact file and stack trace?"
+                },
+                {
+                  "user": "alice_dev",
+                  "created_at": "2024-09-11T10:20:00Z",
+                  "body": "Attached is the file and trace: ..."
+                }
+              ]
+            }
+          },
+          "value": "## Status\n- **Open** \u2013 bug, high\u2011priority  \n- **Reporter:** alice_dev (2024\u201109\u201110)  \n- **Assignee:** bob_maintainer (requested more info)\n\n## Problem\nOpening a CSV file larger than 200\u202fMB causes an `IndexOutOfRangeException` that crashes the application.\n\n## Details\n- **Failure:** `IndexOutOfRangeException` when loading a large CSV.  \n- **Code/Error quoted:**  \n  ```csharp\n  var row = records[i];   // i = 215_000 exceeds count of 214_999\n  ```  \n- **Stack trace excerpt:**  \n  ```\n  at CsvReader.Load(string filePath) in CsvReader.cs:line 124\n  at App.Main() in Program.cs:line 45\n  ```\n\n## Next step\nReproduce the issue with the provided file and stack trace to identify why the index exceeds the record count, then fix the bounds check.",
+          "score": 5.0,
+          "reason": "The output adds an assignee not present in the input, the Problem sentence exceeds 40 words, the Details section includes code and stack trace not present in the issue, and the Next step describes two actions instead of one concrete step."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "issue": {
               "title": "Add dark mode toggle",
               "state": "open",
               "labels": [
                 "enhancement",
                 "ui"
               ],
-              "user": "carol_designer",
-              "created_at": "2024-08-22T14:12:00Z",
-              "body": "Users have asked for a dark mode option in the settings menu.",
-              "comments": []
-            }
-          },
-          "value": "## Status\n- **Open**\n- **Labels:** `enhancement`, `ui`\n- **Reporter:** carol_designer (2024-08-22T14:12:00Z)\n\n## Problem\nUsers request a dark mode toggle in the settings menu.\n\n## Details\nThe UI currently lacks a dark mode option; no code or error is provided in the issue.\n\n## Next step\nImplement a dark mode toggle in the settings menu and expose it via the UI.",
-          "score": 8.33,
-          "reason": "The Next step section invents implementation as the required action, but the issue only reports a user request without any code, design, or plan, so the appropriate maintainer action is to create a design spec and implementation plan."
-        },
-        {
-          "config": "Nano 30B fast",
-          "input": {
-            "issue": {
-              "title": "Fix login redirect loop",
-              "state": "open",
-              "labels": [
-                "bug",
-                "auth"
-              ],
-              "user": "alice_dev",
-              "created_at": "2024-09-25T08:30:00Z",
-              "body": "After submitting credentials, the user is redirected back to login page indefinitely.",
+              "user": "ux_designer",
+              "created_at": "2024-07-15T11:30:00Z",
+              "body": null,
               "comments": [
                 {
-                  "user": "bob_support",
-                  "created_at": "2024-09-25T09:00:00Z",
-                  "body": "Can you reproduce on incognito?"
+                  "user": "ux_designer",
+                  "created_at": "2024-07-15T11:35:00Z",
+                  "body": "I think we need a dark mode switch in the settings."
                 },
                 {
-                  "user": "alice_dev",
-                  "created_at": "2024-09-25T09:05:00Z",
-                  "body": "Yes, happens in Chrome and Firefox."
+                  "user": "dev_lead",
+                  "created_at": "2024-07-16T14:00:00Z",
+                  "body": "We can implement using CSS prefers-color-scheme. Let's discuss scope."
+                },
+                {
+                  "user": "ux_designer",
+                  "created_at": "2024-07-17T09:10:00Z",
+                  "body": "Agree, start with toggle and later add theme persistence."
                 }
               ]
             }
           },
-          "value": "## Status\n- **Open**\n- **Labels:** bug, auth\n- **Reporter:** alice_dev (2024-09-25T08:30:00Z)\n- **Recent comment:** bob_support asked to reproduce on incognito; alice_dev confirmed on Chrome and Firefox.\n\n## Problem\nLogin redirects to the login page repeatedly after submitting credentials.\n\n## Details\nThe issue occurs when submitting valid credentials; the server returns a redirect response that points back to the login URL, causing an infinite loop. No session cookie is set, and the error message shown is \u201cRedirecting to login\u2026\u201d.\n\n## Next step\nInvestigate the authentication middleware\u2019s redirect logic and verify that the redirect URL is correctly set to the intended post\u2011login destination.",
-          "score": 5.0,
-          "reason": "Details includes facts not in the issue (no session cookie, error message); Next step quotes code not present in the issue."
+          "value": "## Status\n- **Open** issue with `enhancement` and `ui` labels.  \n- Reported by **ux_designer** on 2024\u201107\u201115.  \n- No assignee or milestone defined yet.\n\n## Problem\nAdd a dark\u2011mode toggle to the settings UI so users can switch between light and dark themes.\n\n## Details\n- The UI currently lacks any theme switching control.  \n- **Error/quote:** No error reported; the request is for a new UI element.  \n- Implementation suggestion: use `prefers-color-scheme` CSS with a persistent toggle.\n\n## Next step\nCreate a prototype for the dark\u2011mode toggle in the settings page and define persistence logic.",
+          "score": 8.33,
+          "reason": "All checks pass: the output contains exactly four ## headings in the correct order; the Problem section is a single sentence of 18 words; the Details section accurately notes that no error was reported and quotes the implementation suggestion; the Next step describes one concrete action; and no facts are hallucinated beyond the issue content."
         },
         {
           "config": "Nano 30B fast",
           "input": {
             "issue": {
-              "title": "Update README with contribution guidelines",
+              "title": "App freezes intermittently",
               "state": "open",
               "labels": [
-                "documentation"
+                "bug"
               ],
-              "user": "doc_writer",
-              "created_at": "2024-09-20T12:00:00Z",
-              "body": null,
-              "comments": []
+              "user": "tester",
+              "created_at": "2024-09-05T16:45:00Z",
+              "body": "Sometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.",
+              "comments": [
+                {
+                  "user": "senior_dev",
+                  "created_at": "2024-09-06T10:00:00Z",
+                  "body": "Check if there are any long-running tasks on the main thread."
+                },
+                {
+                  "user": "tester",
+                  "created_at": "2024-09-06T11:20:00Z",
+                  "body": "I profiled and saw a spike in memory usage right before freeze."
+                }
+              ]
             }
           },
-          "value": "## Status\n- Open\n- Label: documentation\n- Reported by: doc_writer (2024-09-20T12:00:00Z)\n\n## Problem\nThe repository lacks clear contribution guidelines.\n\n## Details\nNo CONTRIBUTING.md or equivalent file exists, and the README does not contain contribution instructions.\n\n## Next step\nAdd a CONTRIBUTING.md file with contribution guidelines and update the README accordingly.",
+          "value": "## Status\n- **Open**\n- **Labels:** bug\n- **Reporter:** tester (2024-09-05T16:45:00Z)\n- **Recent comment:** senior_dev (2024-09-06T10:00:00Z) suggested checking for long\u2011running tasks on the main thread; tester (2024-09-06T11:20:00Z) observed a memory spike before freezes.\n\n## Problem\nThe UI intermittently freezes for a few seconds when the save button is clicked.\n\n## Details\n- **Failure:** UI freeze lasting several seconds on save button clicks.\n- **Relevant observation:** Memory usage spikes just before each freeze (profiled by tester).\n- **Potential cause hint:** Long\u2011running tasks on the main thread (senior_dev\u2019s suggestion).\n\n## Next step\nInvestigate and eliminate long\u2011running operations on the main thread, focusing on code paths triggered by the save button and the associated memory spike.",
+          "score": 8.33,
+          "reason": "Problem section contains 17 words, exceeding the 40-word limit by a small margin but the instruction says 'at most 40 words' and this is within that; however the instruction also says 'one sentence' and the Problem section is one sentence, so this passes. Wait, recount: 'The UI intermittently freezes for a few seconds when the save button is clicked.' That's 14 words. So it's within 40 words. The failure is that Details section does not quote relevant code or error from the issue; it only summarizes observations. The instruction requires quoting relevant code or error, which is absent. Therefore check 3 fails."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "issue": {
+              "title": "Integer overflow when processing >2^31 items",
+              "state": "open",
+              "labels": [
+                "bug",
+                "performance"
+              ],
+              "user": "researcher",
+              "created_at": "2024-09-18T22:05:00Z",
+              "body": "When the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.",
+              "comments": [
+                {
+                  "user": "maintainer",
+                  "created_at": "2024-09-19T08:30:00Z",
+                  "body": "We should change the counter to use 64-bit integer or check bounds."
+                }
+              ]
+            }
+          },
+          "value": "## Status\n- **Open**\n- **Labels:** `bug`, `performance`\n- **Reporter:** researcher\n- **Reported at:** 2024-09-18T22:05:00Z\n\n## Problem\nThe loop counter overflows when processing more than\u202f2\u00b3\u00b9\u202fitems, wrapping to a negative value and causing an infinite loop.\n\n## Details\nThe code uses a signed 32\u2011bit integer for the loop index. When the input list exceeds 2,147,483,647 elements, the counter exceeds `INT_MAX` and wraps to a negative number, preventing the loop termination condition from being met.\n\n```python\nfor i in range(len(data)):\n    # ... process data[i] ...\n```\n\nWith `len(data) > 2**31`, `i` becomes negative, leading to an endless iteration.\n\n## Next step\nReplace the loop counter with a 64\u2011bit integer type (e.g., `int64` or Python\u2019s arbitrary\u2011precision `int`) or add a bounds check before entering the loop. This will prevent overflow and allow processing of arbitrarily large lists.",
           "score": 8.33,
           "reason": ""
         },
         {
-          "config": "Nano 30B fast",
+          "config": "Nano 30B think",
           "input": {
             "issue": {
-              "title": "Handle negative numbers in tax calculation",
-              "state": "closed",
+              "title": "Crash when opening large CSV file",
+              "state": "open",
+              "labels": [
+                "bug",
+                "high-priority"
+              ],
+              "user": "alice_dev",
+              "created_at": "2024-09-10T14:32:00Z",
+              "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
+              "comments": [
+                {
+                  "user": "bob_maintainer",
+                  "created_at": "2024-09-11T09:05:00Z",
+                  "body": "Can you share the exact file and stack trace?"
+                },
+                {
+                  "user": "alice_dev",
+                  "created_at": "2024-09-11T10:20:00Z",
+                  "body": "Attached is the file and trace: ..."
+                }
+              ]
+            }
+          },
+          "value": "\n## Status\n- **State:** open  \n- **Labels:** bug, high-priority  \n- **Reporter:** alice_dev (2024-09-10T14:32:00Z)\n\n## Problem\nThe application crashes with an `IndexOutOfRangeException` when opening a CSV file larger than 200\u202fMB.\n\n## Details\n- **Failure:** `IndexOutOfRangeException` causing the app to exit.  \n- **Relevant info:** User attached the problematic file and its stack trace.\n\n## Next step\nReview the attached file and stack trace to reproduce the crash and implement a fix.",
+          "score": 8.33,
+          "reason": "Details section does not quote the actual error (`IndexOutOfRangeException`) inline as it appears in the issue text; it only mentions it in a bullet label."
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "issue": {
+              "title": "Add dark mode toggle",
+              "state": "open",
+              "labels": [
+                "enhancement",
+                "ui"
+              ],
+              "user": "ux_designer",
+              "created_at": "2024-07-15T11:30:00Z",
+              "body": null,
+              "comments": [
+                {
+                  "user": "ux_designer",
+                  "created_at": "2024-07-15T11:35:00Z",
+                  "body": "I think we need a dark mode switch in the settings."
+                },
+                {
+                  "user": "dev_lead",
+                  "created_at": "2024-07-16T14:00:00Z",
+                  "body": "We can implement using CSS prefers-color-scheme. Let's discuss scope."
+                },
+                {
+                  "user": "ux_designer",
+                  "created_at": "2024-07-17T09:10:00Z",
+                  "body": "Agree, start with toggle and later add theme persistence."
+                }
+              ]
+            }
+          },
+          "value": "\n## Status\nOpen; labels: `enhancement`, `ui`; reported by **ux_designer** on **2024-07-15T11:30:00Z**.\n\n## Problem\nAdd a dark mode toggle to the settings UI.\n\n## Details\nThe request is to implement a toggle; a maintainer suggested using `CSS prefers-color-scheme`.  \n> \u201cWe can implement using CSS prefers-color-scheme.\u201d\n\n## Next step\nDefine the toggle\u2019s scope and acceptance criteria before any code is written.",
+          "score": 8.33,
+          "reason": ""
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "issue": {
+              "title": "Unexpected behavior after update",
+              "state": "open",
               "labels": [],
-              "user": "42",
-              "created_at": "2024-09-15T14:22:11-04:00",
-              "body": "When a negative amount is entered, the tax becomes negative which breaks totals.",
-              "comments": [
-                {
-                  "user": "math_reviewer",
-                  "created_at": "2024-09-15T15:00:00Z",
-                  "body": "Should we clamp to zero or show error?"
-                },
-                {
-                  "user": "42",
-                  "created_at": "2024-09-15T15:10:00Z",
-                  "body": "Clamp to zero and show warning."
-                }
-              ]
-            }
-          },
-          "value": "## Status\n- **Open/Closed**: Closed  \n- **Labels**: None  \n- **Reporter**: 42 (2024-09-15T14:22:11-04:00)  \n\n## Problem\nNegative amounts cause negative tax values, breaking total calculations.\n\n## Details\nThe tax calculation returns a negative result when the input amount is negative, leading to incorrect totals.  \n*Error example*: `tax = amount * tax_rate` yields `-5.0` for `amount = -10` and `tax_rate = 0.5`.\n\n## Next step\nImplement clamping to zero for negative amounts and add a warning message.",
-          "score": 5.0,
-          "reason": "Details section invents code (`tax = amount * tax_rate`) and numeric example (`-5.0` for `amount = -10` and `tax_rate = 0.5`) not present in the issue; Problem sentence exceeds 40 words at 46 words; Next step combines two actions (clamping and warning) instead of naming a single concrete action."
-        },
-        {
-          "config": "Nano 30B fast",
-          "input": {
-            "issue": {
-              "title": "Add unit tests for edge case parser",
-              "state": "open",
-              "labels": [
-                "test",
-                "good first issue"
-              ],
-              "user": "ci_bot",
-              "created_at": "2024-09-24T00:00:00Z",
-              "body": "Parser fails when input contains Unicode surrogate pairs.",
-              "comments": [
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:00:00Z",
-                  "body": "Please add test case U+1F600 (grinning emoji)."
-                },
-                {
-                  "user": "ci_bot",
-                  "created_at": "2024-09-24T01:05:00Z",
-                  "body": "Added test, now passes."
-                },
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:10:00Z",
-                  "body": "LGTM, merge when ready."
-                }
-              ]
-            }
-          },
-          "value": "## Status\n- Open issue, labeled `test` and `good first issue`.\n- Reported by `ci_bot` on 2024-09-24T00:00:00Z.\n\n## Problem\nParser fails on Unicode surrogate pairs.\n\n## Details\nThe parser error occurs when processing the surrogate pair U+1F600 (grinning emoji).  \nError: `Invalid surrogate pair at position 5`.\n\n## Next step\nAdd a unit test for the surrogate pair U+1F600.",
-          "score": 5.0,
-          "reason": "Details section quotes an error message 'Invalid surrogate pair at position 5' that does not appear in the issue text; Next step says to add a unit test but the comments indicate the test was already added and passes."
-        },
-        {
-          "config": "Nano 30B fast",
-          "input": {
-            "issue": {
-              "title": "Typo in error message",
-              "state": "open",
-              "labels": [
-                "trivial"
-              ],
-              "user": "anon_user",
-              "created_at": "2024-09-23T18:45:00Z",
-              "body": "",
+              "user": "",
+              "created_at": "2024-09-20T03:12:00Z",
+              "body": null,
               "comments": []
             }
           },
-          "value": "## Status\n- **Open**\n- **Labels:** `trivial`\n- **Reporter:** `anon_user` (2024\u201109\u201123\u202f18:45\u202fUTC)\n\n## Problem\nA typo appears in an error message.\n\n## Details\nThe error message contains the misspelled word \u201cerorr\u201d instead of \u201cerror\u201d.\n\n## Next step\nCorrect the typo in the source code and update the error message.",
+          "value": "\n## Status\nOpen issue; no labels; reported by unknown on 2024-09-20.\n\n## Problem\nThe update causes unexpected behavior.\n\n## Details\nNo failure details or code were provided.\n\n## Next step\nRequest additional information to reproduce the issue.",
+          "score": 8.33,
+          "reason": "The Next step section does not name a single concrete action; 'Request additional information to reproduce the issue' is vague and does not specify what information or from whom."
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "issue": {
+              "title": "App freezes intermittently",
+              "state": "open",
+              "labels": [
+                "bug"
+              ],
+              "user": "tester",
+              "created_at": "2024-09-05T16:45:00Z",
+              "body": "Sometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.",
+              "comments": [
+                {
+                  "user": "senior_dev",
+                  "created_at": "2024-09-06T10:00:00Z",
+                  "body": "Check if there are any long-running tasks on the main thread."
+                },
+                {
+                  "user": "tester",
+                  "created_at": "2024-09-06T11:20:00Z",
+                  "body": "I profiled and saw a spike in memory usage right before freeze."
+                }
+              ]
+            }
+          },
+          "value": "\n## Status\n- Open bug  \n- Label: bug  \n- Reported by tester on 2024-09-05T16:45:00Z  \n\n## Problem\nThe UI intermittently freezes for a few seconds when the save button is clicked.  \n\n## Details\nMemory usage spikes right before freeze (tester comment).  \n\n## Next step\nInvestigate and eliminate long\u2011running tasks on the main thread.",
+          "score": 8.33,
+          "reason": ""
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "issue": {
+              "title": "Integer overflow when processing >2^31 items",
+              "state": "open",
+              "labels": [
+                "bug",
+                "performance"
+              ],
+              "user": "researcher",
+              "created_at": "2024-09-18T22:05:00Z",
+              "body": "When the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.",
+              "comments": [
+                {
+                  "user": "maintainer",
+                  "created_at": "2024-09-19T08:30:00Z",
+                  "body": "We should change the counter to use 64-bit integer or check bounds."
+                }
+              ]
+            }
+          },
+          "value": "\n## Status\n- Open  \n- Labels: bug, performance  \n- Reported by researcher on 2024\u201109\u201118T22:05:00Z  \n\n## Problem\nProcessing more than 2,147,483,647 items causes the loop counter to wrap to a negative value, resulting in an infinite loop.  \n\n## Details\nThe loop counter overflows when the input exceeds 2^31 elements, causing the loop to run indefinitely; the maintainer noted: \u201cWe should change the counter to use 64\u2011bit integer or check bounds.\u201d  \n\n## Next step\nConvert the loop counter to a 64\u2011bit integer or add a bounds check to prevent overflow.",
+          "score": 8.33,
+          "reason": "All checks passed; the output matches the input facts, uses four correct headings in order, Problem is one sentence under 40 words, Details quotes the maintainer comment, and Next step gives a concrete action without hallucination."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "issue": {
+              "title": "Crash when opening large CSV file",
+              "state": "open",
+              "labels": [
+                "bug",
+                "high-priority"
+              ],
+              "user": "alice_dev",
+              "created_at": "2024-09-10T14:32:00Z",
+              "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
+              "comments": [
+                {
+                  "user": "bob_maintainer",
+                  "created_at": "2024-09-11T09:05:00Z",
+                  "body": "Can you share the exact file and stack trace?"
+                },
+                {
+                  "user": "alice_dev",
+                  "created_at": "2024-09-11T10:20:00Z",
+                  "body": "Attached is the file and trace: ..."
+                }
+              ]
+            }
+          },
+          "value": "## Status  \nOpen, labeled as bug and high-priority; reported by alice_dev on 2024-09-10T14:32:00Z.\n\n## Problem  \nOpening CSV files over 200MB causes an IndexOutOfRangeException and crashes the application.\n\n## Details  \nThe crash occurs when loading a large CSV file, resulting in an IndexOutOfRangeException; Alice attached the file and stack trace per Bob's request.\n\n## Next step  \nAnalyze the provided stack trace and file to identify the source of the index-out-of-range error during CSV parsing.",
+          "score": 8.33,
+          "reason": "All checks passed; the output accurately reflects the input, has four correct headings, a concise Problem sentence, includes the quoted exception in Details, and specifies a single concrete next step without hallucination."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "issue": {
+              "title": "Typo in documentation",
+              "state": "closed",
+              "labels": [
+                "documentation",
+                "good-first-issue"
+              ],
+              "user": "doc_writer",
+              "created_at": "2024-08-01T08:00:00Z",
+              "body": "On page 12 of the README, the word 'recieve' should be 'receive'.",
+              "comments": []
+            }
+          },
+          "value": "## Status  \nClosed, labeled as documentation and good-first-issue; reported by doc_writer on 2024-08-01T08:00:00Z.\n\n## Problem  \nA typo exists in the README where \"recieve\" is used instead of \"receive\".\n\n## Details  \nOn page 12 of the README, the word 'recieve' appears incorrectly and should be corrected to 'receive'.\n\n## Next step  \nUpdate the README to fix the spelling of 'recieve' to 'receive' on page 12.",
+          "score": 8.33,
+          "reason": "All checks pass: facts match input, four headings in correct order, Problem is one sentence under 40 words, Details references the specific typo, Next step names a concrete maintainer action, and no hallucinated content is present."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "issue": {
+              "title": "Add dark mode toggle",
+              "state": "open",
+              "labels": [
+                "enhancement",
+                "ui"
+              ],
+              "user": "ux_designer",
+              "created_at": "2024-07-15T11:30:00Z",
+              "body": null,
+              "comments": [
+                {
+                  "user": "ux_designer",
+                  "created_at": "2024-07-15T11:35:00Z",
+                  "body": "I think we need a dark mode switch in the settings."
+                },
+                {
+                  "user": "dev_lead",
+                  "created_at": "2024-07-16T14:00:00Z",
+                  "body": "We can implement using CSS prefers-color-scheme. Let's discuss scope."
+                },
+                {
+                  "user": "ux_designer",
+                  "created_at": "2024-07-17T09:10:00Z",
+                  "body": "Agree, start with toggle and later add theme persistence."
+                }
+              ]
+            }
+          },
+          "value": "## Status  \nOpen, labeled as enhancement and ui, reported by ux_designer on 2024-07-15T11:30:00Z.  \n\n## Problem  \nAdd a dark mode toggle to allow users to switch between light and dark themes.  \n\n## Details  \nThe request is to include a dark mode switch in the settings, with initial implementation using CSS `prefers-color-scheme` and future persistence of user preference.  \n\n## Next step  \nDiscuss and finalize the scope of the dark mode toggle implementation, starting with a basic switch in settings.",
+          "score": 8.33,
+          "reason": "Check 4 failed: Details section does not quote any relevant code or error from the issue text or comments."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "issue": {
+              "title": "Unexpected behavior after update",
+              "state": "open",
+              "labels": [],
+              "user": "",
+              "created_at": "2024-09-20T03:12:00Z",
+              "body": null,
+              "comments": []
+            }
+          },
+          "value": "## Status  \nOpen, no labels assigned; reported by an anonymous user on 2024-09-20T03:12:00Z.\n\n## Problem  \nUnexpected behavior occurred following a recent software update.\n\n## Details  \nNo specific error messages, code snippets, or failure details were provided in the issue description to identify what is failing or how.\n\n## Next step  \nRequest the reporter to provide specific error logs, steps to reproduce, and relevant code or configuration changes since the update.",
+          "score": 6.67,
+          "reason": "Details section fails to quote relevant code or error from the issue as it states none were provided, but the check requires quoting when available."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "issue": {
+              "title": "App freezes intermittently",
+              "state": "open",
+              "labels": [
+                "bug"
+              ],
+              "user": "tester",
+              "created_at": "2024-09-05T16:45:00Z",
+              "body": "Sometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.",
+              "comments": [
+                {
+                  "user": "senior_dev",
+                  "created_at": "2024-09-06T10:00:00Z",
+                  "body": "Check if there are any long-running tasks on the main thread."
+                },
+                {
+                  "user": "tester",
+                  "created_at": "2024-09-06T11:20:00Z",
+                  "body": "I profiled and saw a spike in memory usage right before freeze."
+                }
+              ]
+            }
+          },
+          "value": "## Status  \nThe issue is open, labeled as bug, reported by tester on 2024-09-05T16:45:00Z.\n\n## Problem  \nThe app occasionally freezes for a few seconds when clicking the save button.\n\n## Details  \nFreezing occurs intermittently; profiling showed a spike in memory usage right before the freeze, suggesting possible main thread blocking or memory pressure.\n\n## Next step  \nInvestigate long-running tasks on the main thread, particularly around save button click handlers and memory allocation patterns.",
+          "score": 8.33,
+          "reason": "All checks passed; the output meets the contract requirements."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "issue": {
+              "title": "Integer overflow when processing >2^31 items",
+              "state": "open",
+              "labels": [
+                "bug",
+                "performance"
+              ],
+              "user": "researcher",
+              "created_at": "2024-09-18T22:05:00Z",
+              "body": "When the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.",
+              "comments": [
+                {
+                  "user": "maintainer",
+                  "created_at": "2024-09-19T08:30:00Z",
+                  "body": "We should change the counter to use 64-bit integer or check bounds."
+                }
+              ]
+            }
+          },
+          "value": "## Status  \nOpen, labeled as bug and performance, reported by researcher on 2024-09-18T22:05:00Z.\n\n## Problem  \nLoop counter overflows when processing over 2 billion items, wrapping to negative and causing an infinite loop.\n\n## Details  \nWith input lists exceeding 2,147,483,647 elements, the signed 32-bit loop counter increments past its maximum value, underflows to a negative number, and prevents loop termination.\n\n## Next step  \nChange the loop counter to a 64-bit integer or add explicit bounds checking to prevent overflow.",
+          "score": 8.33,
+          "reason": ""
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "issue": {
+              "title": "Crash when opening large CSV file",
+              "state": "open",
+              "labels": [
+                "bug",
+                "high-priority"
+              ],
+              "user": "alice_dev",
+              "created_at": "2024-09-10T14:32:00Z",
+              "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
+              "comments": [
+                {
+                  "user": "bob_maintainer",
+                  "created_at": "2024-09-11T09:05:00Z",
+                  "body": "Can you share the exact file and stack trace?"
+                },
+                {
+                  "user": "alice_dev",
+                  "created_at": "2024-09-11T10:20:00Z",
+                  "body": "Attached is the file and trace: ..."
+                }
+              ]
+            }
+          },
+          "value": "\n\n**Status**  \nOpen, labeled *bug* and *high\u2011priority*; reported by **alice_dev** on 2024\u201109\u201110T14:32:00Z.\n\n**Problem**  \nOpening a CSV file larger than\u202f200\u202fMB causes an `IndexOutOfRangeException` and crashes the application.\n\n**Details**  \nThe error occurs when loading the file: \u201c`IndexOutOfRangeException`\u201d is thrown (see attached trace). The exception indicates that code is accessing an array or list beyond its bounds while processing the large CSV.\n\n**Next step**  \nReview the attached file and full stack trace to identify the exact location where the index is out of range, then adjust the parsing logic to handle large files safely.",
           "score": 3.33,
-          "reason": "Status uses bullet list instead of concise sentence; Details invents specific typo 'erorr' not present in issue; Next step assumes typo location known when issue provides no file or code context."
+          "reason": "Output uses **Status** instead of ## Status headings, Problem is 22 words (passes length but structure wrong), Details does not quote the exact error from issue text, Next step suggests two actions instead of one, and formatting violates the required markdown structure with level-2 headings."
         },
         {
-          "config": "Nano 30B fast",
-          "input": {
-            "issue": {
-              "title": "Crash when opening file with .xyz extension",
-              "state": "open",
-              "labels": [
-                "bug",
-                "crash"
-              ],
-              "user": "alice_dev",
-              "created_at": "2024-09-15T08:30:00Z",
-              "body": "When I try to open a .xyz file using the app, it crashes immediately after showing the loading spinner.",
-              "comments": [
-                {
-                  "user": "bob_maintainer",
-                  "created_at": "2024-09-15T09:05:00Z",
-                  "body": "Can you share the exact file? Also which OS?"
-                },
-                {
-                  "user": "alice_dev",
-                  "created_at": "2024-09-15T09:20:00Z",
-                  "body": "File attached: test.xyz. OS: Ubuntu 22.04."
-                }
-              ]
-            }
-          },
-          "value": "## Status\n- **Open** bug with `crash` label.\n- Reported by **alice_dev** on **2024-09-15T08:30:00Z**.\n\n## Problem\nOpening a `.xyz` file causes the application to crash immediately after the loading spinner appears.\n\n## Details\n- The crash occurs right after the loading spinner is shown when attempting to open `test.xyz`.\n- The user is on **Ubuntu 22.04**.\n\n## Next step\nRequest the exact contents of `test.xyz` and confirm the environment details to reproduce the issue.",
-          "score": 6.67,
-          "reason": "Check 3 failed: Details section does not quote the user's exact error description from the issue text. Check 4 failed: Next step suggests requesting file contents that are already attached and confirmed, rather than reproducing the crash with the provided file."
-        },
-        {
-          "config": "Nano 30B fast",
-          "input": {
-            "issue": {
-              "title": "Performance regression in v2.3",
-              "state": "closed",
-              "labels": [
-                "performance",
-                "regression",
-                "v2.3"
-              ],
-              "user": "frank_user",
-              "created_at": "2024-07-10T07:45:00Z",
-              "body": "After upgrading to v2.3, the startup time increased from 2s to ~8s.",
-              "comments": [
-                {
-                  "user": "grace_maintainer",
-                  "created_at": "2024-07-11T09:00:00Z",
-                  "body": "Did you enable any new plugins?"
-                },
-                {
-                  "user": "frank_user",
-                  "created_at": "2024-07-11T10:15:00Z",
-                  "body": "No, clean install."
-                },
-                {
-                  "user": "henry_dev",
-                  "created_at": "2024-07-12T14:20:00Z",
-                  "body": "We identified a bug in the asset loader; fix will be in v2.3.1."
-                }
-              ]
-            }
-          },
-          "value": "## Status\n- **State:** closed  \n- **Labels:** performance, regression, v2.3  \n- **Reporter:** frank_user (2024-07-10T07:45:00Z)  \n- **Assignee/fixer:** henry_dev (identified bug)  \n\n## Problem\nStartup time increased from ~2\u202fseconds to ~8\u202fseconds after upgrading to v2.3.\n\n## Details\nThe issue occurs during initialization; the asset loader is loading unnecessary files, causing the delay.  \n> \u201cWe identified a bug in the asset loader; fix will be in v2.3.1.\u201d\n\n## Next step\nRelease v2.3.1 with the asset\u2011loader fix to restore the expected startup performance.",
-          "score": 5.0,
-          "reason": "Check 0 failed: invents \"asset loader is loading unnecessary files\" not in issue; Check 3 failed: Details section quotes only a comment, not relevant code or error from the issue."
-        },
-        {
-          "config": "Nano 30B fast",
-          "input": {
-            "issue": {
-              "title": "UI glitch on high DPI screens",
-              "state": "open",
-              "labels": [
-                "ui"
-              ],
-              "user": "",
-              "created_at": "2024-09-10T00:00:00Z",
-              "body": "On my 4K monitor, buttons appear twice their size.",
-              "comments": []
-            }
-          },
-          "value": "## Status\n- **Open**\n- **Labels:** `ui`\n- **Reporter:** Anonymous\n- **Reported:** 2024-09-10T00:00:00Z\n\n## Problem\nButtons render at double size on high\u2011DPI (4K) monitors.\n\n## Details\nThe UI elements are rendered at 2\u00d7 their intended size, causing layout distortion on high\u2011DPI displays.\n\n## Next step\nAdd or adjust DPI scaling logic to respect the monitor\u2019s scaling factor.",
-          "score": 6.67,
-          "reason": "Status section uses 'Open' without 'State:' label; Next step instructs to implement a fix rather than investigate the root cause."
-        },
-        {
-          "config": "Nano 30B fast",
-          "input": {
-            "issue": {
-              "title": "Incorrect calculation for tax rate 0.075%",
-              "state": "open",
-              "labels": [
-                "bug",
-                "finance"
-              ],
-              "user": "iota_analyst",
-              "created_at": "2024-09-05T16:40:00Z",
-              "body": "When applying a tax rate of 0.075% to an amount of $1000, the system returns $0.75 instead of the expected $0.75? Actually 0.075% of 1000 is 0.75, but the UI shows 0.08 due to rounding.",
-              "comments": [
-                {
-                  "user": "kappa_dev",
-                  "created_at": "2024-09-06T09:10:00Z",
-                  "body": "Looks like a formatting issue; the value is being displayed with two decimal places."
-                }
-              ]
-            }
-          },
-          "value": "## Status\n- **Open**\n- **Labels:** `bug`, `finance`\n- **Reporter:** iota_analyst (2024\u201109\u201105T16:40:00Z)\n\n## Problem\nThe tax calculation for a 0.075\u202f% rate on $1,000 returns $0.75, but the UI displays it as 0.08 due to rounding.\n\n## Details\nThe calculation itself is correct (0.075\u202f%\u202f\u00d7\u202f1000\u202f=\u202f0.75), but the UI formats the result with two decimal places, showing \u201c0.08\u201d instead of \u201c0.75\u201d.  \n*Error snippet from the code:*  \n```js\ntaxAmount = (amount * rate).toFixed(2); // rate = 0.00075\n```\nThis forces two decimal places, causing the visual discrepancy.\n\n## Next step\nFix the UI formatting to preserve the full calculated value (e.g., use `toFixed(2)` only for display when the value truly requires it, or adjust the rounding logic to match the expected precision).",
-          "score": 6.67,
-          "reason": "Details section includes a code snippet not present in the issue text, violating the no-invented-facts rule."
-        },
-        {
-          "config": "Nano 30B think",
-          "input": {
-            "issue": {
-              "title": "Typo in error message",
-              "state": "open",
-              "labels": [
-                "trivial"
-              ],
-              "user": "anon_user",
-              "created_at": "2024-09-23T18:45:00Z",
-              "body": "",
-              "comments": []
-            }
-          },
-          "value": "\n## Status\n- Open\n- Label: `trivial`\n- Reported by: `anon_user` on 2024-09-23T18:45:00Z\n\n## Problem\nA typo appears in an error message shown to users.\n\n## Details\nThe issue mentions a typo in an error message but does not provide the exact code or quoted error text.\n\n## Next step\nFix the typo in the error message text.",
-          "score": 8.33,
-          "reason": "Next step assumes the typo is known and fixable, but the issue provides no location or exact text, so the only defensible action is to ask the reporter for details."
-        },
-        {
-          "config": "Nano 30B think",
-          "input": {
-            "issue": {
-              "title": "Crash when opening file with .xyz extension",
-              "state": "open",
-              "labels": [
-                "bug",
-                "crash"
-              ],
-              "user": "alice_dev",
-              "created_at": "2024-09-15T08:30:00Z",
-              "body": "When I try to open a .xyz file using the app, it crashes immediately after showing the loading spinner.",
-              "comments": [
-                {
-                  "user": "bob_maintainer",
-                  "created_at": "2024-09-15T09:05:00Z",
-                  "body": "Can you share the exact file? Also which OS?"
-                },
-                {
-                  "user": "alice_dev",
-                  "created_at": "2024-09-15T09:20:00Z",
-                  "body": "File attached: test.xyz. OS: Ubuntu 22.04."
-                }
-              ]
-            }
-          },
-          "value": "\n## Status\nOpen bug, crash, reported by **alice_dev** at **2024-09-15T08:30:00Z**.\n\n## Problem\nThe application crashes instantly when opening a **.xyz** file after displaying a loading spinner.\n\n## Details\nThe user experiences a crash \u201cimmediately after showing the loading spinner.\u201d The attached file **test.xyz** on **Ubuntu 22.04** triggers this behavior.\n\n## Next step\nReproduce the crash using the provided **test.xyz** file on **Ubuntu 22.04** to verify and investigate the issue.",
-          "score": 8.33,
-          "reason": "All checks passed: facts are correct, structure is valid markdown with four ordered headings, Problem is one sentence \u226440 words, Details includes quoted user description and provided context, Next step specifies a single concrete action, and no facts are invented beyond the issue text."
-        },
-        {
-          "config": "Nano 30B think",
-          "input": {
-            "issue": {
-              "title": "Add dark mode toggle",
-              "state": "open",
-              "labels": [
-                "enhancement",
-                "ui"
-              ],
-              "user": "carol_designer",
-              "created_at": "2024-08-20T14:12:00Z",
-              "body": "It would be great to have a dark mode option in the settings menu.",
-              "comments": []
-            }
-          },
-          "value": "\n## Status\n- **State:** open  \n- **Labels:** enhancement, ui  \n- **Reported by:** carol_designer (2024-08-20T14:12:00Z)  \n\n## Problem\nUser wants a dark mode toggle added to the settings menu.  \n\n## Details\nThe issue requests \u201cdark mode option in the settings menu.\u201d No code or error is provided.  \n\n## Next step\nImplement a dark mode toggle in the settings menu.",
-          "score": 8.33,
-          "reason": "Problem section is 12 words and two sentences, violating the one-sentence constraint."
-        },
-        {
-          "config": "Nano 30B think",
+          "config": "Super 120B think",
           "input": {
             "issue": {
               "title": "Typo in documentation",
-              "state": "open",
-              "labels": [],
-              "user": "dave_contrib",
-              "created_at": "2024-09-01T11:00:00Z",
-              "body": null,
-              "comments": [
-                {
-                  "user": "eve_reviewer",
-                  "created_at": "2024-09-02T10:30:00Z",
-                  "body": "Found the typo on page 42, line 12: 'recieve' should be 'receive'."
-                }
-              ]
-            }
-          },
-          "value": "\n## Status\nOpen. No labels. Reported by **dave_contrib** on **2024\u201109\u201101T11:00:00Z**.\n\n## Problem\nTypo in documentation: **'recieve'** should be **'receive'** on page\u202f42, line\u202f12.\n\n## Details\nThe misspelled word **'recieve'** appears on page\u202f42, line\u202f12; the correct spelling is **'receive'**.\n\n## Next step\nReplace **'recieve'** with **'receive'** in the documentation to correct the typo.",
-          "score": 8.33,
-          "reason": "Details section does not quote the relevant error text from the issue or comment; it only paraphrases the typo without a direct quotation."
-        },
-        {
-          "config": "Nano 30B think",
-          "input": {
-            "issue": {
-              "title": "Performance regression in v2.3",
               "state": "closed",
               "labels": [
-                "performance",
-                "regression",
-                "v2.3"
+                "documentation",
+                "good-first-issue"
               ],
-              "user": "frank_user",
-              "created_at": "2024-07-10T07:45:00Z",
-              "body": "After upgrading to v2.3, the startup time increased from 2s to ~8s.",
-              "comments": [
-                {
-                  "user": "grace_maintainer",
-                  "created_at": "2024-07-11T09:00:00Z",
-                  "body": "Did you enable any new plugins?"
-                },
-                {
-                  "user": "frank_user",
-                  "created_at": "2024-07-11T10:15:00Z",
-                  "body": "No, clean install."
-                },
-                {
-                  "user": "henry_dev",
-                  "created_at": "2024-07-12T14:20:00Z",
-                  "body": "We identified a bug in the asset loader; fix will be in v2.3.1."
-                }
-              ]
+              "user": "doc_writer",
+              "created_at": "2024-08-01T08:00:00Z",
+              "body": "On page 12 of the README, the word 'recieve' should be 'receive'.",
+              "comments": []
             }
           },
-          "value": "\n## Status\n- Closed issue, labeled **performance**, **regression**, **v2.3**.  \n- Reported by **frank_user** on **2024-07-10T07:45:00Z**.\n\n## Problem\nStartup time increased from ~2\u202fseconds to ~8\u202fseconds after upgrading to v2.3.\n\n## Details\nThe regression is traced to a **bug in the asset loader**; a fix is planned for v2.3.1.\n\n## Next step\nRelease v2.3.1 containing the asset loader fix.",
-          "score": 8.33,
-          "reason": "The Next step describes a future release rather than a concrete maintainer action; it should instruct the maintainer to verify the fix in v2.3.1 and close the issue if confirmed."
+          "value": "\n\n**Status**  \nClosed \u2013 labeled `documentation` and `good-first-issue`. Reported by **doc_writer** on 2024\u201108\u201101T08:00:00Z.\n\n**Problem**  \nThe word \u201crecieve\u201d is misspelled on page\u202f12 of the README.\n\n**Details**  \nIn `README.md` around line\u202fXX (page\u202f12) the text reads:  \n> \u2026 you will **recieve** a confirmation email \u2026\n\n(The correct spelling is \u201creceive\u201d.)\n\n**Next step**  \nReplace the occurrence of \u201crecieve\u201d with \u201creceive\u201d in the README file and submit a pull request.",
+          "score": 5.0,
+          "reason": "Output uses **Status** instead of ## Status headings, Problem sentence is 10 words (limit is \u226440, so this passes), but Details section quotes text not present in the issue input (the issue only states the typo exists on page 12, no code snippet or line number is provided), violating the no-hallucination and quoting requirements."
         },
         {
-          "config": "Nano 30B think",
-          "input": {
-            "issue": {
-              "title": "Incorrect calculation for tax rate 0.075%",
-              "state": "open",
-              "labels": [
-                "bug",
-                "finance"
-              ],
-              "user": "iota_analyst",
-              "created_at": "2024-09-05T16:40:00Z",
-              "body": "When applying a tax rate of 0.075% to an amount of $1000, the system returns $0.75 instead of the expected $0.75? Actually 0.075% of 1000 is 0.75, but the UI shows 0.08 due to rounding.",
-              "comments": [
-                {
-                  "user": "kappa_dev",
-                  "created_at": "2024-09-06T09:10:00Z",
-                  "body": "Looks like a formatting issue; the value is being displayed with two decimal places."
-                }
-              ]
-            }
-          },
-          "value": "\n## Status\nOpen. Reported by **iota_analyst** on 2024-09-05T16:40:00Z. Labels: `bug`, `finance`.\n\n## Problem\nThe UI shows **0.08** instead of the correct **0.75** when a 0.075\u202f% tax is applied to $1,000.\n\n## Details\nThe calculation should be 0.075\u202f%\u202f\u00d7\u202f1000\u202f=\u202f0.75, but the value is being displayed with two decimal places.  \n*Comment:* \u201cLooks like a formatting issue; the value is being displayed with two decimal places.\u201d\n\n## Next step\nFix the rounding/display logic so the full calculated tax amount is shown correctly.",
-          "score": 6.67,
-          "reason": "Problem section contains 22 words, exceeding the 40-word limit; Details section does not quote any code or error from the issue text, only paraphrases the comment."
-        },
-        {
-          "config": "Super 120B fast",
+          "config": "Super 120B think",
           "input": {
             "issue": {
               "title": "Add dark mode toggle",
@@ -944,626 +823,153 @@
                 "enhancement",
                 "ui"
               ],
-              "user": "carol_designer",
-              "created_at": "2024-08-22T14:12:00Z",
-              "body": "Users have asked for a dark mode option in the settings menu.",
-              "comments": []
-            }
-          },
-          "value": "## Status  \nOpen, labeled as enhancement and ui, reported by carol_designer on 2024-08-22.\n\n## Problem  \nAdd a dark mode toggle to the settings menu per user request.\n\n## Details  \nNo specific failure or error is described; the issue requests a new feature to implement dark mode via a toggle in the settings menu.\n\n## Next step  \nImplement a dark mode toggle in the settings menu based on user feedback.",
-          "score": 8.33,
-          "reason": "Next step names a broad implementation goal rather than a single concrete maintainer action like creating a design spec or plan."
-        },
-        {
-          "config": "Super 120B fast",
-          "input": {
-            "issue": {
-              "title": "Fix login redirect loop",
-              "state": "open",
-              "labels": [
-                "bug",
-                "auth"
-              ],
-              "user": "alice_dev",
-              "created_at": "2024-09-25T08:30:00Z",
-              "body": "After submitting credentials, the user is redirected back to login page indefinitely.",
-              "comments": [
-                {
-                  "user": "bob_support",
-                  "created_at": "2024-09-25T09:00:00Z",
-                  "body": "Can you reproduce on incognito?"
-                },
-                {
-                  "user": "alice_dev",
-                  "created_at": "2024-09-25T09:05:00Z",
-                  "body": "Yes, happens in Chrome and Firefox."
-                }
-              ]
-            }
-          },
-          "value": "## Status  \nOpen, labeled as bug and auth, reported by alice_dev on 2024-09-25T08:30:00Z.\n\n## Problem  \nUser experiences an infinite redirect loop after submitting login credentials.\n\n## Details  \nAfter submitting credentials, the user is redirected back to the login page indefinitely; occurs in both Chrome and Firefox, including incognito mode.\n\n## Next step  \nInvestigate authentication middleware and session handling logic to identify the cause of the redirect loop post-login.",
-          "score": 5.0,
-          "reason": "Details section does not quote relevant code/error from the issue (only paraphrases user report), and Next step proposes a broad investigation rather than a single concrete maintainer action."
-        },
-        {
-          "config": "Super 120B fast",
-          "input": {
-            "issue": {
-              "title": "Update README with contribution guidelines",
-              "state": "open",
-              "labels": [
-                "documentation"
-              ],
-              "user": "doc_writer",
-              "created_at": "2024-09-20T12:00:00Z",
+              "user": "ux_designer",
+              "created_at": "2024-07-15T11:30:00Z",
               "body": null,
-              "comments": []
-            }
-          },
-          "value": "## Status  \nOpen, labeled as documentation, reported by doc_writer on 2024-09-20.\n\n## Problem  \nThe README lacks contribution guidelines for new contributors.\n\n## Details  \nNo contributing instructions are present in the README file to guide users on how to contribute code, report issues, or follow project standards.\n\n## Next step  \nAdd a \"Contributing\" section to the README with clear guidelines for contributions.",
-          "score": 5.0,
-          "reason": "Check 3 fails: Details does not quote any code or error from the issue (the issue contains none). Check 4 fails: Next step \"Add a Contributing section to the README with clear guidelines for contributions\" is too generic and does not name a single concrete maintainer action (e.g., draft the section, open a PR, assign a reviewer)."
-        },
-        {
-          "config": "Super 120B fast",
-          "input": {
-            "issue": {
-              "title": "Handle negative numbers in tax calculation",
-              "state": "closed",
-              "labels": [],
-              "user": "42",
-              "created_at": "2024-09-15T14:22:11-04:00",
-              "body": "When a negative amount is entered, the tax becomes negative which breaks totals.",
               "comments": [
                 {
-                  "user": "math_reviewer",
-                  "created_at": "2024-09-15T15:00:00Z",
-                  "body": "Should we clamp to zero or show error?"
+                  "user": "ux_designer",
+                  "created_at": "2024-07-15T11:35:00Z",
+                  "body": "I think we need a dark mode switch in the settings."
                 },
                 {
-                  "user": "42",
-                  "created_at": "2024-09-15T15:10:00Z",
-                  "body": "Clamp to zero and show warning."
+                  "user": "dev_lead",
+                  "created_at": "2024-07-16T14:00:00Z",
+                  "body": "We can implement using CSS prefers-color-scheme. Let's discuss scope."
+                },
+                {
+                  "user": "ux_designer",
+                  "created_at": "2024-07-17T09:10:00Z",
+                  "body": "Agree, start with toggle and later add theme persistence."
                 }
               ]
             }
           },
-          "value": "## Status  \nClosed, no labels, reported by user 42 on 2024-09-15T14:22:11-04:00.\n\n## Problem  \nNegative input amounts cause negative tax values, breaking total calculations.\n\n## Details  \nEntering a negative amount results in a negative tax, which disrupts overall totals as noted in the issue description.\n\n## Next step  \nImplement clamping negative amounts to zero with a warning, as suggested by the reporter and reviewer.",
-          "score": 8.33,
-          "reason": "The Details section does not quote relevant code or error from the issue; it only paraphrases the problem without including any direct quotes."
-        },
-        {
-          "config": "Super 120B fast",
-          "input": {
-            "issue": {
-              "title": "Add unit tests for edge case parser",
-              "state": "open",
-              "labels": [
-                "test",
-                "good first issue"
-              ],
-              "user": "ci_bot",
-              "created_at": "2024-09-24T00:00:00Z",
-              "body": "Parser fails when input contains Unicode surrogate pairs.",
-              "comments": [
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:00:00Z",
-                  "body": "Please add test case U+1F600 (grinning emoji)."
-                },
-                {
-                  "user": "ci_bot",
-                  "created_at": "2024-09-24T01:05:00Z",
-                  "body": "Added test, now passes."
-                },
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:10:00Z",
-                  "body": "LGTM, merge when ready."
-                }
-              ]
-            }
-          },
-          "value": "## Status  \nOpen, labeled `test` and `good first issue`, reported by ci_bot on 2024-09-24T00:00:00Z.\n\n## Problem  \nThe parser does not handle Unicode surrogate pairs correctly, causing failures with certain characters like emojis.\n\n## Details  \nInput containing Unicode surrogate pairs causes the parser to fail; specifically, the grinning emoji U+1F600 was identified as a failing case.\n\n## Next step  \nMerge the added test case for U+1F600, which now passes, to close the issue.",
-          "score": 6.67,
-          "reason": "Problem section exceeds 40 words (contains 44 words) and Details section does not quote any code or error from the issue text."
-        },
-        {
-          "config": "Super 120B fast",
-          "input": {
-            "issue": {
-              "title": "Typo in error message",
-              "state": "open",
-              "labels": [
-                "trivial"
-              ],
-              "user": "anon_user",
-              "created_at": "2024-09-23T18:45:00Z",
-              "body": "",
-              "comments": []
-            }
-          },
-          "value": "## Status  \nOpen, labeled as trivial, reported by anon_user on 2024-09-23T18:45:00Z.\n\n## Problem  \nA typo exists in an error message within the codebase.\n\n## Details  \nThe specific error message containing the typo is not provided in the issue description or comments.\n\n## Next step  \nSearch the codebase for recent changes to error messages or grep for likely misspellings in user-facing strings.",
+          "value": "\n\n## Status\nOpen, labeled enhancement and ui, reported by ux_designer on 2024-07-15.\n\n## Problem\nThe application lacks a user\u2011controllable dark mode toggle.\n\n## Details\nAs noted by ux_designer: \u201cI think we need a dark mode switch in the settings.\u201d Currently no such switch exists.\n\n## Next step\nImplement a toggle in the settings panel that uses CSS prefers-color-scheme (or a JS class) to switch themes, with persistence to be added later.",
           "score": 8.33,
           "reason": ""
         },
         {
-          "config": "Super 120B fast",
+          "config": "Super 120B think",
           "input": {
             "issue": {
-              "title": "Add dark mode toggle",
+              "title": "Unexpected behavior after update",
               "state": "open",
-              "labels": [
-                "enhancement",
-                "ui"
-              ],
-              "user": "carol_designer",
-              "created_at": "2024-08-20T14:12:00Z",
-              "body": "It would be great to have a dark mode option in the settings menu.",
-              "comments": []
-            }
-          },
-          "value": "## Status  \nOpen, labeled as enhancement and ui, reported by carol_designer on 2024-08-20.\n\n## Problem  \nThe application lacks a dark mode toggle in the settings menu.\n\n## Details  \nNo implementation exists for a dark mode option; users cannot switch to a dark theme via settings.\n\n## Next step  \nImplement a dark mode toggle in the settings menu with corresponding UI and theme-switching logic.",
-          "score": 8.33,
-          "reason": "The Details section does not quote any relevant code or error from the issue, as required."
-        },
-        {
-          "config": "Super 120B fast",
-          "input": {
-            "issue": {
-              "title": "Performance regression in v2.3",
-              "state": "closed",
-              "labels": [
-                "performance",
-                "regression",
-                "v2.3"
-              ],
-              "user": "frank_user",
-              "created_at": "2024-07-10T07:45:00Z",
-              "body": "After upgrading to v2.3, the startup time increased from 2s to ~8s.",
-              "comments": [
-                {
-                  "user": "grace_maintainer",
-                  "created_at": "2024-07-11T09:00:00Z",
-                  "body": "Did you enable any new plugins?"
-                },
-                {
-                  "user": "frank_user",
-                  "created_at": "2024-07-11T10:15:00Z",
-                  "body": "No, clean install."
-                },
-                {
-                  "user": "henry_dev",
-                  "created_at": "2024-07-12T14:20:00Z",
-                  "body": "We identified a bug in the asset loader; fix will be in v2.3.1."
-                }
-              ]
-            }
-          },
-          "value": "## Status  \nClosed, labeled as performance, regression, and v2.3, reported by frank_user on 2024-07-10T07:45:00Z.\n\n## Problem  \nStartup time increased from 2 seconds to approximately 8 seconds after upgrading to v2.3.\n\n## Details  \nThe user reported a clean install with no new plugins enabled, and the maintainers identified a bug in the asset loader causing the slowdown.\n\n## Next step  \nAwait the fix in v2.3.1, which will address the asset loader bug.",
-          "score": 8.33,
-          "reason": "Details section does not quote any relevant code or error from the issue, only paraphrases the problem description."
-        },
-        {
-          "config": "Super 120B fast",
-          "input": {
-            "issue": {
-              "title": "UI glitch on high DPI screens",
-              "state": "open",
-              "labels": [
-                "ui"
-              ],
+              "labels": [],
               "user": "",
-              "created_at": "2024-09-10T00:00:00Z",
-              "body": "On my 4K monitor, buttons appear twice their size.",
-              "comments": []
-            }
-          },
-          "value": "## Status  \nOpen, labeled `ui`, reported by an anonymous user on 2024-09-10.\n\n## Problem  \nButtons render at double their intended size on high-DPI displays like 4K monitors.\n\n## Details  \nOn a 4K monitor, UI elements such as buttons are displayed at approximately twice their expected size, causing layout and usability issues.\n\n## Next step  \nInvestigate and adjust UI scaling logic to properly handle high-DPI screen configurations.",
-          "score": 6.67,
-          "reason": "Details section does not quote the user's exact words from the issue; Next step is vague and does not specify a single concrete maintainer action like reproducing on a high-DPI display or inspecting scaling implementation."
-        },
-        {
-          "config": "Super 120B fast",
-          "input": {
-            "issue": {
-              "title": "Incorrect calculation for tax rate 0.075%",
-              "state": "open",
-              "labels": [
-                "bug",
-                "finance"
-              ],
-              "user": "iota_analyst",
-              "created_at": "2024-09-05T16:40:00Z",
-              "body": "When applying a tax rate of 0.075% to an amount of $1000, the system returns $0.75 instead of the expected $0.75? Actually 0.075% of 1000 is 0.75, but the UI shows 0.08 due to rounding.",
-              "comments": [
-                {
-                  "user": "kappa_dev",
-                  "created_at": "2024-09-06T09:10:00Z",
-                  "body": "Looks like a formatting issue; the value is being displayed with two decimal places."
-                }
-              ]
-            }
-          },
-          "value": "## Status  \nOpen, labeled as bug and finance, reported by iota_analyst on 2024-09-05T16:40:00Z.\n\n## Problem  \nThe system incorrectly displays tax calculations due to improper rounding when showing values with two decimal places.\n\n## Details  \nFor a tax rate of 0.075% applied to $1000, the correct tax is $0.75, but the UI shows $0.08 because the value is being formatted to two decimal places, causing a display error.\n\n## Next step  \nReview and fix the formatting logic in the tax display component to correctly show values like 0.75 without erroneous rounding.",
-          "score": 6.67,
-          "reason": "Problem section is 30 words (exceeds 40-word limit? No, 30 \u2264 40 \u2014 wait, count: 'The(1) system2 incorrectly3 displays4 tax5 calculations6 due7 to8 improper9 rounding10 when11 showing12 values13 with14 two15 decimal16 places17.' = 17 words? Let's count carefully: The(1) system(2) incorrectly(3) displays(4) tax(5) calculations(6) due(7) to(8) improper(9) rounding(10) when(11) showing(12) values(13) with(14) two(15) decimal(16) places(17). That's 17 words, well under 40. But check 2 says 'Problem section is \u226440 words and one sentence' \u2014 it is one sentence, 17 words. So check 2 should pass. Check 3: 'Details section quotes relevant code/error from the issue' \u2014 the issue has no code or error message, only a description. The Details section says 'the UI shows $0.08 because the value is being formatted to two decimal places' \u2014 this is from the issue (comment by kappa_dev). But 'quotes' implies verbatim text. The issue says: 'the UI shows 0.08 due to rounding' and comment: 'the value is being displayed with two decimal places'. The output does not quote verbatim. So check 3 fails because no direct quote of code/error. Check 5: 'No facts invented beyond what appears in the issue text' \u2014 the output says 'Review and fix the formatting logic in the tax display component' \u2014 'tax display component' is not in the issue. That's invented. So check 5 fails. Check 0: all facts correct? 'labeled as bug and finance' \u2014 yes. 'reported by iota_analyst on 2024-09-05T16:40:00Z' \u2014 yes. 'correct tax is $0.75' \u2014 yes. 'UI shows $0.08' \u2014 yes. 'formatting to two decimal places' \u2014 yes. So check 0 passes. Check 1: valid markdown, four ## headings in order \u2014 yes. Check 4: Next step names single concrete maintainer action \u2014 'Review and fix the formatting logic in the tax display component' \u2014 concrete, single. Passes. So passed: [true, true, false, true, false, true]. Reason: Details lacks verbatim quote of code/error; Next step invents 'tax display component' not in issue."
-        },
-        {
-          "config": "Super 120B think",
-          "input": {
-            "issue": {
-              "title": "Add dark mode toggle",
-              "state": "open",
-              "labels": [
-                "enhancement",
-                "ui"
-              ],
-              "user": "carol_designer",
-              "created_at": "2024-08-22T14:12:00Z",
-              "body": "Users have asked for a dark mode option in the settings menu.",
-              "comments": []
-            }
-          },
-          "value": "\n\n## Status\nOpen, labeled **enhancement** and **ui**, reported by carol_designer on 2024-08-22.\n\n## Problem\nUsers request a dark mode toggle in the application settings.\n\n## Details\nThe settings menu currently has no dark mode option; no UI control or preference setting for dark mode exists.\n\n## Next step\nImplement a toggle switch for dark mode in the settings menu and store the user\u2019s preference.",
-          "score": 6.67,
-          "reason": "Check 3 failed: the Details section does not quote any code or error from the issue, only paraphrases the issue text."
-        },
-        {
-          "config": "Super 120B think",
-          "input": {
-            "issue": {
-              "title": "Fix login redirect loop",
-              "state": "open",
-              "labels": [
-                "bug",
-                "auth"
-              ],
-              "user": "alice_dev",
-              "created_at": "2024-09-25T08:30:00Z",
-              "body": "After submitting credentials, the user is redirected back to login page indefinitely.",
-              "comments": [
-                {
-                  "user": "bob_support",
-                  "created_at": "2024-09-25T09:00:00Z",
-                  "body": "Can you reproduce on incognito?"
-                },
-                {
-                  "user": "alice_dev",
-                  "created_at": "2024-09-25T09:05:00Z",
-                  "body": "Yes, happens in Chrome and Firefox."
-                }
-              ]
-            }
-          },
-          "value": "\n\n## Status\nOpen, labels: **bug**, **auth**. Reported by **alice_dev** on 2024-09-25T08:30:00Z.\n\n## Problem\nAfter submitting credentials, the user is redirected back to the login page indefinitely.\n\n## Details\nThe loop happens in Chrome and Firefox (and persists in incognito per bob_support\u2019s question). No error message appears; the browser continuously receives a redirect response to the login URL instead of advancing to the target page.\n\n## Next step\nInstrument the authentication redirect logic to log whether a session/token is set and why the redirect to login is chosen, then verify the condition that should allow progression past login.",
-          "score": 8.33,
-          "reason": "All checks pass: facts are accurate, markdown structure correct with four headings, Problem is one sentence under 40 words, Details references the issue's described behavior, Next step gives a single concrete action, and no facts are invented beyond the input."
-        },
-        {
-          "config": "Super 120B think",
-          "input": {
-            "issue": {
-              "title": "Update README with contribution guidelines",
-              "state": "open",
-              "labels": [
-                "documentation"
-              ],
-              "user": "doc_writer",
-              "created_at": "2024-09-20T12:00:00Z",
+              "created_at": "2024-09-20T03:12:00Z",
               "body": null,
               "comments": []
             }
           },
-          "value": "\n\n## Status\nOpen, labeled documentation, reported by doc_writer on 2024-09-20T12:00:00Z.\n\n## Problem\nThe README file does not contain contribution guidelines for contributors.\n\n## Details\nThe current README lacks any section describing how to contribute, making it unclear for new contributors.\n\n## Next step\nAdd a contribution guidelines section to the README.md file.",
-          "score": 8.33,
-          "reason": "Details section does not quote any code or error from the issue as required."
-        },
-        {
-          "config": "Super 120B think",
-          "input": {
-            "issue": {
-              "title": "Handle negative numbers in tax calculation",
-              "state": "closed",
-              "labels": [],
-              "user": "42",
-              "created_at": "2024-09-15T14:22:11-04:00",
-              "body": "When a negative amount is entered, the tax becomes negative which breaks totals.",
-              "comments": [
-                {
-                  "user": "math_reviewer",
-                  "created_at": "2024-09-15T15:00:00Z",
-                  "body": "Should we clamp to zero or show error?"
-                },
-                {
-                  "user": "42",
-                  "created_at": "2024-09-15T15:10:00Z",
-                  "body": "Clamp to zero and show warning."
-                }
-              ]
-            }
-          },
-          "value": "\n\n## Status  \nThe issue is closed, has no labels, was reported by user **42** on\u202f2024\u201109\u201115\u202f14:22:11\u202f-04:00.\n\n## Problem  \nEntering a negative amount causes the tax calculation to return a negative tax, which breaks the overall totals.\n\n## Details  \nWhen a negative value is passed to the tax routine, the function computes `tax = amount * rate` without checking the sign, producing a negative tax that subtracts from the subtotal instead of adding to it.\n\n## Next step  \nModify the tax calculation to clamp negative results to zero (or reject negative inputs) and display a warning to the user, as discussed in the comments.",
-          "score": 8.33,
-          "reason": "All checks passed."
-        },
-        {
-          "config": "Super 120B think",
-          "input": {
-            "issue": {
-              "title": "Add unit tests for edge case parser",
-              "state": "open",
-              "labels": [
-                "test",
-                "good first issue"
-              ],
-              "user": "ci_bot",
-              "created_at": "2024-09-24T00:00:00Z",
-              "body": "Parser fails when input contains Unicode surrogate pairs.",
-              "comments": [
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:00:00Z",
-                  "body": "Please add test case U+1F600 (grinning emoji)."
-                },
-                {
-                  "user": "ci_bot",
-                  "created_at": "2024-09-24T01:05:00Z",
-                  "body": "Added test, now passes."
-                },
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:10:00Z",
-                  "body": "LGTM, merge when ready."
-                }
-              ]
-            }
-          },
-          "value": "\n\n## Status\nOpen, labeled **test** and **good first issue**, reported by **ci_bot** on 2024\u201109\u201124.\n\n## Problem\nMissing unit test for the parser\u2019s handling of Unicode surrogate\u2011pair input.\n\n## Details\nThe parser fails when the input contains Unicode surrogate pairs (e.g., U+1F600 \ud83d\ude00), leading to incorrect parsing or errors.\n\n## Next step\nReview and merge the added test case for U+1F600 to confirm the parser correctly processes surrogate pairs.",
+          "value": "\n\n## Status  \nOpen, no labels, reported by an unnamed user on 2024-09-20T03:12:00Z.\n\n## Problem  \nThe software shows unexpected behavior after a recent update.\n\n## Details  \nNo specific error message, stack trace, or code snippet was included in the issue description.\n\n## Next step  \nAsk the reporter to provide detailed reproduction steps, any error output, and relevant code or logs.",
           "score": 6.67,
-          "reason": "Details section does not quote any code or error text from the issue, it only paraphrases the failure."
+          "reason": "Problem section uses 12 words (\u226440) and is one sentence, but it infers 'unexpected behavior after a recent update' which is not stated in the issue; the issue has no body, so the problem cannot be determined from the input."
         },
         {
           "config": "Super 120B think",
           "input": {
             "issue": {
-              "title": "Typo in error message",
+              "title": "App freezes intermittently",
               "state": "open",
               "labels": [
-                "trivial"
+                "bug"
               ],
-              "user": "anon_user",
-              "created_at": "2024-09-23T18:45:00Z",
-              "body": "",
-              "comments": []
+              "user": "tester",
+              "created_at": "2024-09-05T16:45:00Z",
+              "body": "Sometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.",
+              "comments": [
+                {
+                  "user": "senior_dev",
+                  "created_at": "2024-09-06T10:00:00Z",
+                  "body": "Check if there are any long-running tasks on the main thread."
+                },
+                {
+                  "user": "tester",
+                  "created_at": "2024-09-06T11:20:00Z",
+                  "body": "I profiled and saw a spike in memory usage right before freeze."
+                }
+              ]
             }
           },
-          "value": "\n\n## Status\nOpen, labeled **trivial**, reported by *anon_user* on 2024\u201109\u201123T18:45:00Z.\n\n## Problem\nThere is a typo in an error message.\n\n## Details\nThe issue title states \u201cTypo in error message\u201d; no exact message or code snippet is provided.\n\n## Next step\nFind the erroneous string and fix the typo.",
+          "value": "\n\n## Status  \nThe issue is open, labeled **bug**, and was reported by tester on 2024\u201109\u201105T16:45:00Z.\n\n## Problem  \nThe UI occasionally freezes for a few seconds when the Save button is clicked.\n\n## Details  \nClicking Save sometimes causes the UI to hang; a profile showed a memory usage spike right before the freeze, and a senior developer suggested checking for long\u2011running tasks on the main thread.\n\n## Next step  \nInstrument the Save button handler to detect and log any long\u2011running work or large allocations on the main thread, then reproduce the freeze to identify the offending code.",
           "score": 8.33,
-          "reason": "The Details section does not quote any code or error message from the issue, but the input contains none to quote."
+          "reason": "All checks passed: facts match input, four headings in correct order, Problem is one sentence under 40 words, Details references the memory spike and main-thread suggestion from comments, Next step proposes a single concrete profiling action, and no hallucinated facts are present."
         },
         {
           "config": "Super 120B think",
           "input": {
             "issue": {
-              "title": "Crash when opening file with .xyz extension",
+              "title": "Integer overflow when processing >2^31 items",
               "state": "open",
               "labels": [
                 "bug",
-                "crash"
+                "performance"
+              ],
+              "user": "researcher",
+              "created_at": "2024-09-18T22:05:00Z",
+              "body": "When the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.",
+              "comments": [
+                {
+                  "user": "maintainer",
+                  "created_at": "2024-09-19T08:30:00Z",
+                  "body": "We should change the counter to use 64-bit integer or check bounds."
+                }
+              ]
+            }
+          },
+          "value": "\n\n## Status\nOpen, labeled **bug** and **performance**, reported by researcher on 2024-09-18T22:05:00Z.\n\n## Problem\nAn integer overflow occurs when processing more than 2,147,483,647 items, causing the loop counter to wrap to negative and enter an infinite loop.\n\n## Details\nThe loop uses a signed 32\u2011bit counter (`int i = 0; i < list.size(); ++i`). When `list.size()` exceeds `INT_MAX`, `i` overflows to a negative value, so the termination condition never becomes false.  \n*Example symptom:* \u201cInfinite loop detected after processing >2\u00b3\u00b9 elements.\u201d\n\n## Next step\nReplace the 32\u2011bit counter with a 64\u2011bit type (e.g., `std::size_t` or `int64_t`) or add a pre\u2011loop bounds check to reject inputs larger than `INT_MAX`.",
+          "score": 8.33,
+          "reason": ""
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "issue": {
+              "title": "Crash when opening large CSV file",
+              "state": "open",
+              "labels": [
+                "bug",
+                "high-priority"
               ],
               "user": "alice_dev",
-              "created_at": "2024-09-15T08:30:00Z",
-              "body": "When I try to open a .xyz file using the app, it crashes immediately after showing the loading spinner.",
+              "created_at": "2024-09-10T14:32:00Z",
+              "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
               "comments": [
                 {
                   "user": "bob_maintainer",
-                  "created_at": "2024-09-15T09:05:00Z",
-                  "body": "Can you share the exact file? Also which OS?"
+                  "created_at": "2024-09-11T09:05:00Z",
+                  "body": "Can you share the exact file and stack trace?"
                 },
                 {
                   "user": "alice_dev",
-                  "created_at": "2024-09-15T09:20:00Z",
-                  "body": "File attached: test.xyz. OS: Ubuntu 22.04."
+                  "created_at": "2024-09-11T10:20:00Z",
+                  "body": "Attached is the file and trace: ..."
                 }
               ]
             }
           },
-          "value": "\n\n**Status**  \nOpen, labeled *bug* and *crash*, reported by **alice_dev** on 2024\u201109\u201115T08:30:00Z.\n\n**Problem**  \nThe app crashes immediately after showing the loading spinner when opening a file with the *.xyz* extension.\n\n**Details**  \nOn Ubuntu\u202f22.04, selecting the attached *test.xyz* file causes the UI to display a loading spinner and then the application terminates without further output.\n\n**Next step**  \nObtain the crash log or stack trace (e.g., via `gdb` or system crash reporter) for the *test.xyz* file on Ubuntu\u202f22.04 to identify the failure point.",
+          "value": "## Status\nOpen issue labeled **bug** and **high-priority**, reported by **alice_dev** on **2024-09-10T14:32:00Z**.\n\n## Problem\nOpening a CSV file larger than 200 MB causes an `IndexOutOfRangeException` and crashes the application.\n\n## Details\nUser reports the exception occurs when loading large CSV files; a file and stack trace were attached in the follow-up comment.\n\n## Next step\nReproduce the crash using the attached file and stack trace to locate the out-of-bounds array access.",
           "score": 8.33,
-          "reason": "Check 3 failed: the output uses bolded headings (**Status**) instead of required level-2 markdown headings (## Status); Check 6 failed: the Next step suggests obtaining a crash log/stack trace, which is not mentioned in the issue and thus invents a fact beyond the provided text."
-        },
-        {
-          "config": "Super 120B think",
-          "input": {
-            "issue": {
-              "title": "Add dark mode toggle",
-              "state": "open",
-              "labels": [
-                "enhancement",
-                "ui"
-              ],
-              "user": "carol_designer",
-              "created_at": "2024-08-20T14:12:00Z",
-              "body": "It would be great to have a dark mode option in the settings menu.",
-              "comments": []
-            }
-          },
-          "value": "\n\n**Status**  \nOpen, labeled *enhancement* and *ui*, reported by carol_designer on 2024-08-20T14:12:00Z.\n\n**Problem**  \nAdd a dark mode toggle to the settings menu so users can switch themes.\n\n**Details**  \nThe application currently lacks any dark\u2011mode option; the settings menu does not contain a control for enabling a dark theme.\n\n**Next step**  \nDesign and implement a toggle switch in the settings UI, store the user\u2019s preference, and apply the dark theme when enabled.",
-          "score": 6.67,
-          "reason": "Check 1 failed: output uses **Status** instead of ## Status headings and has blank lines before first heading; Check 3 failed: Problem section is 16 words but framed as an action rather than a problem statement; Check 4 failed: Details section contains no quoted code or error from the issue."
-        },
-        {
-          "config": "Super 120B think",
-          "input": {
-            "issue": {
-              "title": "Performance regression in v2.3",
-              "state": "closed",
-              "labels": [
-                "performance",
-                "regression",
-                "v2.3"
-              ],
-              "user": "frank_user",
-              "created_at": "2024-07-10T07:45:00Z",
-              "body": "After upgrading to v2.3, the startup time increased from 2s to ~8s.",
-              "comments": [
-                {
-                  "user": "grace_maintainer",
-                  "created_at": "2024-07-11T09:00:00Z",
-                  "body": "Did you enable any new plugins?"
-                },
-                {
-                  "user": "frank_user",
-                  "created_at": "2024-07-11T10:15:00Z",
-                  "body": "No, clean install."
-                },
-                {
-                  "user": "henry_dev",
-                  "created_at": "2024-07-12T14:20:00Z",
-                  "body": "We identified a bug in the asset loader; fix will be in v2.3.1."
-                }
-              ]
-            }
-          },
-          "value": "\n\n**Status**  \nClosed \u2013 labeled *performance*, *regression*, *v2.3*; reported by frank_user on 2024\u201107\u201110\u202f07:45\u202fUTC.\n\n**Problem**  \nStartup time grew from ~2\u202fs to ~8\u202fs after upgrading to v2.3.\n\n**Details**  \nThe increase is traced to a bug in the asset loader (see henry_dev\u2019s comment: \u201cWe identified a bug in the asset loader; fix will be in v2.3.1.\u201d). No new plugins were enabled; the issue occurs on a clean install.\n\n**Next step**  \nTest the v2.3.1 pre\u2011release (or backport the asset\u2011loader fix) to confirm the startup time returns to ~2\u202fs.",
-          "score": 8.33,
-          "reason": "All checks passed: facts are accurate, markdown structure is correct with four ##-level headings in order, Problem is one sentence under 40 words, Details quotes the relevant comment, Next step specifies a single concrete action, and no facts are invented beyond the issue text."
-        },
-        {
-          "config": "Ultra 550B fast",
-          "input": {
-            "issue": {
-              "title": "Fix login redirect loop",
-              "state": "open",
-              "labels": [
-                "bug",
-                "auth"
-              ],
-              "user": "alice_dev",
-              "created_at": "2024-09-25T08:30:00Z",
-              "body": "After submitting credentials, the user is redirected back to login page indefinitely.",
-              "comments": [
-                {
-                  "user": "bob_support",
-                  "created_at": "2024-09-25T09:00:00Z",
-                  "body": "Can you reproduce on incognito?"
-                },
-                {
-                  "user": "alice_dev",
-                  "created_at": "2024-09-25T09:05:00Z",
-                  "body": "Yes, happens in Chrome and Firefox."
-                }
-              ]
-            }
-          },
-          "value": "## Status\nOpen issue labeled **bug** and **auth**, reported by **alice_dev** on 2024-09-25T08:30:00Z.\n\n## Problem\nSubmitting valid credentials redirects the user back to the login page in an infinite loop.\n\n## Details\n- alice_dev confirms the redirect loop occurs in both Chrome and Firefox.\n- bob_support asked if the issue reproduces in incognito; alice_dev replied yes.\n\n## Next step\nAdd server-side logging around the authentication middleware to capture the redirect target and session state on each request.",
-          "score": 8.33,
-          "reason": "All checks pass: facts are accurate, markdown structure is correct with four level-2 headings in order, Problem is one sentence under 40 words, Details references the issue content without inventing quotes, Next step provides a single concrete maintainer action, and no external facts are introduced."
-        },
-        {
-          "config": "Ultra 550B fast",
-          "input": {
-            "issue": {
-              "title": "Update README with contribution guidelines",
-              "state": "open",
-              "labels": [
-                "documentation"
-              ],
-              "user": "doc_writer",
-              "created_at": "2024-09-20T12:00:00Z",
-              "body": null,
-              "comments": []
-            }
-          },
-          "value": "## Status\nOpen issue labeled **documentation**, reported by **doc_writer** on **2024-09-20T12:00:00Z**.\n\n## Problem\nThe README lacks contribution guidelines for new contributors.\n\n## Details\nNo contributing instructions, code-of-conduct link, or pull-request template are present in the current README.\n\n## Next step\nAdd a \"Contributing\" section to the README with guidelines, a code-of-conduct reference, and a pull-request checklist.",
-          "score": 6.67,
-          "reason": "Details section does not quote any relevant code or error from the issue text."
-        },
-        {
-          "config": "Ultra 550B fast",
-          "input": {
-            "issue": {
-              "title": "Handle negative numbers in tax calculation",
-              "state": "closed",
-              "labels": [],
-              "user": "42",
-              "created_at": "2024-09-15T14:22:11-04:00",
-              "body": "When a negative amount is entered, the tax becomes negative which breaks totals.",
-              "comments": [
-                {
-                  "user": "math_reviewer",
-                  "created_at": "2024-09-15T15:00:00Z",
-                  "body": "Should we clamp to zero or show error?"
-                },
-                {
-                  "user": "42",
-                  "created_at": "2024-09-15T15:10:00Z",
-                  "body": "Clamp to zero and show warning."
-                }
-              ]
-            }
-          },
-          "value": "## Status\nClosed. No labels. Reported by 42 on 2024-09-15T14:22:11-04:00.\n\n## Problem\nNegative input amounts produce negative tax, breaking total calculations.\n\n## Details\nThe issue states: \"When a negative amount is entered, the tax becomes negative which breaks totals.\" The team agreed to clamp negative amounts to zero and display a warning.\n\n## Next step\nVerify the fix clamps negative inputs to zero and emits a warning before closing the issue.",
-          "score": 6.67,
-          "reason": "Problem section contains 12 words, exceeding the 40-word limit."
-        },
-        {
-          "config": "Ultra 550B fast",
-          "input": {
-            "issue": {
-              "title": "Add unit tests for edge case parser",
-              "state": "open",
-              "labels": [
-                "test",
-                "good first issue"
-              ],
-              "user": "ci_bot",
-              "created_at": "2024-09-24T00:00:00Z",
-              "body": "Parser fails when input contains Unicode surrogate pairs.",
-              "comments": [
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:00:00Z",
-                  "body": "Please add test case U+1F600 (grinning emoji)."
-                },
-                {
-                  "user": "ci_bot",
-                  "created_at": "2024-09-24T01:05:00Z",
-                  "body": "Added test, now passes."
-                },
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:10:00Z",
-                  "body": "LGTM, merge when ready."
-                }
-              ]
-            }
-          },
-          "value": "## Status\nOpen; labels: test, good first issue. Reported by ci_bot on 2024-09-24T00:00:00Z.\n\n## Problem\nParser fails on input containing Unicode surrogate pairs.\n\n## Details\nNo code or error output is provided in the issue. The only concrete detail is the requested test case for code point U+1F600 (grinning emoji).\n\n## Next step\nMerge the pull request that adds the U+1F600 test case.",
-          "score": 6.67,
-          "reason": "Check 3 failed: the Details section must quote relevant code or error from the issue, but the issue provides none, and the output explicitly states that no code or error is provided, which does not satisfy the requirement to quote."
+          "reason": "All checks passed: facts match the input, four correct headings in order, Problem is one sentence \u226440 words, Details references the attached file and stack trace as the relevant error context, Next step specifies a single concrete action, and no hallucinated facts are present."
         },
         {
           "config": "Ultra 550B fast",
           "input": {
             "issue": {
               "title": "Typo in documentation",
-              "state": "open",
-              "labels": [],
-              "user": "dave_contrib",
-              "created_at": "2024-09-01T11:00:00Z",
-              "body": null,
-              "comments": [
-                {
-                  "user": "eve_reviewer",
-                  "created_at": "2024-09-02T10:30:00Z",
-                  "body": "Found the typo on page 42, line 12: 'recieve' should be 'receive'."
-                }
-              ]
+              "state": "closed",
+              "labels": [
+                "documentation",
+                "good-first-issue"
+              ],
+              "user": "doc_writer",
+              "created_at": "2024-08-01T08:00:00Z",
+              "body": "On page 12 of the README, the word 'recieve' should be 'receive'.",
+              "comments": []
             }
           },
-          "value": "## Status\nOpen, no labels, reported by dave_contrib on 2024-09-01.\n\n## Problem\nA typo exists in the documentation where \"recieve\" is misspelled.\n\n## Details\nOn page 42, line 12, the word 'recieve' should be 'receive'.\n\n## Next step\nCorrect the spelling error in the documentation source file.",
+          "value": "## Status\nClosed. Labels: documentation, good-first-issue. Reported by doc_writer on 2024-08-01T08:00:00Z.\n\n## Problem\nA typo exists on page 12 of the README where 'recieve' is misspelled.\n\n## Details\nThe word 'recieve' appears on page 12 of the README and should be corrected to 'receive'.\n\n## Next step\nNo action required; the issue is closed.",
           "score": 8.33,
           "reason": ""
         },
@@ -1571,132 +977,141 @@
           "config": "Ultra 550B fast",
           "input": {
             "issue": {
-              "title": "Incorrect calculation for tax rate 0.075%",
+              "title": "Add dark mode toggle",
               "state": "open",
               "labels": [
-                "bug",
-                "finance"
+                "enhancement",
+                "ui"
               ],
-              "user": "iota_analyst",
-              "created_at": "2024-09-05T16:40:00Z",
-              "body": "When applying a tax rate of 0.075% to an amount of $1000, the system returns $0.75 instead of the expected $0.75? Actually 0.075% of 1000 is 0.75, but the UI shows 0.08 due to rounding.",
+              "user": "ux_designer",
+              "created_at": "2024-07-15T11:30:00Z",
+              "body": null,
               "comments": [
                 {
-                  "user": "kappa_dev",
-                  "created_at": "2024-09-06T09:10:00Z",
-                  "body": "Looks like a formatting issue; the value is being displayed with two decimal places."
-                }
-              ]
-            }
-          },
-          "value": "## Status\nOpen; labels: bug, finance; reported by iota_analyst on 2024-09-05T16:40:00Z.\n\n## Problem\nThe UI displays a tax amount of $0.08 instead of $0.75 due to incorrect rounding of a 0.075% rate on $1000.\n\n## Details\nThe calculation yields the correct value ($0.75), but the UI formats it to two decimal places, showing $0.08. kappa_dev notes: \"the value is being displayed with two decimal places.\"\n\n## Next step\nLocate the UI formatting logic for tax amounts and increase the displayed decimal precision to at least three places.",
-          "score": 8.33,
-          "reason": "All checks passed: facts match the input, markdown structure has four correct headings, Problem is one sentence under 40 words, Details quotes the comment, Next step gives a single concrete action, and no facts are invented."
-        },
-        {
-          "config": "Ultra 550B think",
-          "input": {
-            "issue": {
-              "title": "Fix login redirect loop",
-              "state": "open",
-              "labels": [
-                "bug",
-                "auth"
-              ],
-              "user": "alice_dev",
-              "created_at": "2024-09-25T08:30:00Z",
-              "body": "After submitting credentials, the user is redirected back to login page indefinitely.",
-              "comments": [
-                {
-                  "user": "bob_support",
-                  "created_at": "2024-09-25T09:00:00Z",
-                  "body": "Can you reproduce on incognito?"
+                  "user": "ux_designer",
+                  "created_at": "2024-07-15T11:35:00Z",
+                  "body": "I think we need a dark mode switch in the settings."
                 },
                 {
-                  "user": "alice_dev",
-                  "created_at": "2024-09-25T09:05:00Z",
-                  "body": "Yes, happens in Chrome and Firefox."
+                  "user": "dev_lead",
+                  "created_at": "2024-07-16T14:00:00Z",
+                  "body": "We can implement using CSS prefers-color-scheme. Let's discuss scope."
+                },
+                {
+                  "user": "ux_designer",
+                  "created_at": "2024-07-17T09:10:00Z",
+                  "body": "Agree, start with toggle and later add theme persistence."
                 }
               ]
             }
           },
-          "value": "## Status\n- State: **open**  \n- Labels: **bug**, **auth**  \n- Reported by **alice_dev** on **2024\u201109\u201125T08:30:00Z**\n\n## Problem\nAfter submitting credentials, the user is redirected back to the login page indefinitely.\n\n## Details\n- User reports: \u201cAfter submitting credentials, the user is redirected back to login page indefinitely.\u201d  \n- **bob_support** asked if reproducible in incognito.  \n- **alice_dev** confirmed it occurs in both Chrome and Firefox (including incognito).\n\n## Next step\nAdd server\u2011side logging to trace the redirect chain after a login submission.",
+          "value": "## Status\nOpen issue labeled **enhancement** and **ui**, reported by **ux_designer** on 2024-07-15.\n\n## Problem\nUsers cannot switch the application to a dark color scheme.\n\n## Details\nux_designer requests a dark mode toggle in settings; dev_lead suggests implementing with CSS `prefers-color-scheme` and the team agrees to start with a toggle and add theme persistence later.\n\n## Next step\nCreate a design spec and implementation plan for a settings-based dark mode toggle using CSS `prefers-color-scheme`.",
           "score": 8.33,
           "reason": ""
         },
         {
-          "config": "Ultra 550B think",
+          "config": "Ultra 550B fast",
           "input": {
             "issue": {
-              "title": "Update README with contribution guidelines",
+              "title": "Unexpected behavior after update",
               "state": "open",
-              "labels": [
-                "documentation"
-              ],
-              "user": "doc_writer",
-              "created_at": "2024-09-20T12:00:00Z",
+              "labels": [],
+              "user": "",
+              "created_at": "2024-09-20T03:12:00Z",
               "body": null,
               "comments": []
             }
           },
-          "value": "## Status\nOpen, labeled documentation, reported by doc_writer on 2024-09-20.\n\n## Problem\nREADME lacks contribution guidelines for new contributors.\n\n## Details\nNo contribution guidelines exist in the README file.\n\n## Next step\nAdd a CONTRIBUTING section to README with pull request process and coding standards.",
-          "score": 8.33,
-          "reason": ""
+          "value": "## Status\nopen, no labels, reported by  on 2024-09-20T03:12:00Z\n\n## Problem\nThe issue title indicates unexpected behavior following an update, but the description is empty.\n\n## Details\nNo description, code snippets, error messages, or reproduction steps were provided in the issue body.\n\n## Next step\nAsk the reporter to provide a detailed description of the unexpected behavior, including steps to reproduce, expected vs actual results, and relevant logs or code.",
+          "score": 6.67,
+          "reason": "The Problem section contains two sentences instead of the required single sentence."
         },
         {
-          "config": "Ultra 550B think",
+          "config": "Ultra 550B fast",
           "input": {
             "issue": {
-              "title": "Add unit tests for edge case parser",
+              "title": "App freezes intermittently",
               "state": "open",
               "labels": [
-                "test",
-                "good first issue"
+                "bug"
               ],
-              "user": "ci_bot",
-              "created_at": "2024-09-24T00:00:00Z",
-              "body": "Parser fails when input contains Unicode surrogate pairs.",
+              "user": "tester",
+              "created_at": "2024-09-05T16:45:00Z",
+              "body": "Sometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.",
               "comments": [
                 {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:00:00Z",
-                  "body": "Please add test case U+1F600 (grinning emoji)."
+                  "user": "senior_dev",
+                  "created_at": "2024-09-06T10:00:00Z",
+                  "body": "Check if there are any long-running tasks on the main thread."
                 },
                 {
-                  "user": "ci_bot",
-                  "created_at": "2024-09-24T01:05:00Z",
-                  "body": "Added test, now passes."
-                },
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:10:00Z",
-                  "body": "LGTM, merge when ready."
+                  "user": "tester",
+                  "created_at": "2024-09-06T11:20:00Z",
+                  "body": "I profiled and saw a spike in memory usage right before freeze."
                 }
               ]
             }
           },
-          "value": "## Status\nOpen; labels: test, good first issue; reported by ci_bot on 2024-09-24.\n\n## Problem\nParser fails when input contains Unicode surrogate pairs.\n\n## Details\nThe parser fails on Unicode surrogate pairs; a test case for U+1F600 (grinning emoji) was added and now passes.\n\n## Next step\nMerge the changes once the test passes.",
+          "value": "## Status\nOpen, labeled **bug**, reported by **tester** on 2024-09-05T16:45:00Z.\n\n## Problem\nThe UI intermittently freezes for several seconds when the save button is clicked.\n\n## Details\n- Freeze occurs sporadically on save-button click; no consistent network or storage pattern identified.  \n- **senior_dev** suggests checking for long-running tasks on the main thread.  \n- **tester** observed a memory-usage spike immediately before each freeze during profiling.\n\n## Next step\nInstrument the save-button handler and any synchronous work it triggers to log execution time and memory allocations, then correlate spikes with main-thread blockage.",
           "score": 8.33,
-          "reason": "The 'Details' section does not quote any relevant code or error from the issue, it only paraphrases the problem and resolution."
+          "reason": "All checks pass: facts are correct, four required headings present in order, Problem is one sentence under 40 words, Details includes relevant quoted observations from comments, Next step specifies a single concrete profiling action, and no hallucinated facts appear."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "issue": {
+              "title": "Integer overflow when processing >2^31 items",
+              "state": "open",
+              "labels": [
+                "bug",
+                "performance"
+              ],
+              "user": "researcher",
+              "created_at": "2024-09-18T22:05:00Z",
+              "body": "When the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.",
+              "comments": [
+                {
+                  "user": "maintainer",
+                  "created_at": "2024-09-19T08:30:00Z",
+                  "body": "We should change the counter to use 64-bit integer or check bounds."
+                }
+              ]
+            }
+          },
+          "value": "## Status\nOpen. Labels: bug, performance. Reported by researcher on 2024-09-18T22:05:00Z.\n\n## Problem\nLoop counter overflows to negative when processing over 2,147,483,647 elements, causing an infinite loop.\n\n## Details\nThe loop counter wraps to negative values when the input list exceeds 2^31 elements, resulting in an infinite loop.\n\n## Next step\nChange the loop counter to a 64-bit integer or add bounds checking.",
+          "score": 8.33,
+          "reason": "All checks passed: the output contains the four required headings in the correct order, all facts match the input, the Problem section is a single sentence under 40 words, the Details section accurately describes the failure, the Next step names a concrete action, and no hallucinated facts are present."
         },
         {
           "config": "Ultra 550B think",
           "input": {
             "issue": {
-              "title": "Typo in error message",
+              "title": "Crash when opening large CSV file",
               "state": "open",
               "labels": [
-                "trivial"
+                "bug",
+                "high-priority"
               ],
-              "user": "anon_user",
-              "created_at": "2024-09-23T18:45:00Z",
-              "body": "",
-              "comments": []
+              "user": "alice_dev",
+              "created_at": "2024-09-10T14:32:00Z",
+              "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
+              "comments": [
+                {
+                  "user": "bob_maintainer",
+                  "created_at": "2024-09-11T09:05:00Z",
+                  "body": "Can you share the exact file and stack trace?"
+                },
+                {
+                  "user": "alice_dev",
+                  "created_at": "2024-09-11T10:20:00Z",
+                  "body": "Attached is the file and trace: ..."
+                }
+              ]
             }
           },
-          "value": "## Status\nOpen, labeled trivial, reported by anon_user on 2024-09-23.\n\n## Problem\nAn error message contains a typo.\n\n## Details\nNo specific error message, code location, or typo details were provided in the issue.\n\n## Next step\nAsk the reporter to identify the exact error message and file location.",
+          "value": "## Status\nOpen; labels: bug, high-priority; reported by alice_dev on 2024-09-10T14:32:00Z.\n\n## Problem\nApplication crashes with IndexOutOfRangeException when opening CSV files larger than 200MB.\n\n## Details\nUser reports crash on large CSV files; bob_maintainer requested file and stack trace; alice_dev provided both as attachments.\n\n## Next step\nReproduce the crash using the attached file and stack trace to locate the out-of-bounds access.",
           "score": 8.33,
-          "reason": ""
+          "reason": "Details section does not quote the relevant error (IndexOutOfRangeException) or any code from the issue, only summarizes the comment thread."
         },
         {
           "config": "Ultra 550B think",
@@ -1708,230 +1123,250 @@
                 "enhancement",
                 "ui"
               ],
-              "user": "carol_designer",
-              "created_at": "2024-08-20T14:12:00Z",
-              "body": "It would be great to have a dark mode option in the settings menu.",
-              "comments": []
-            }
-          },
-          "value": "## Status\nOpen \u00b7 labels: enhancement, ui \u00b7 reported by carol_designer on 2024-08-20T14:12:00Z\n\n## Problem\nUsers cannot switch to a dark color theme because no toggle exists in the settings menu.\n\n## Details\nThe settings menu lacks a dark mode option; there is no theme switcher or persisted preference for dark appearance.\n\n## Next step\nAdd a dark mode toggle to the settings UI and store the user\u2019s theme choice.",
-          "score": 6.67,
-          "reason": "Details section does not quote relevant code or error from the issue as required."
-        },
-        {
-          "config": "Ultra 550B think",
-          "input": {
-            "issue": {
-              "title": "Performance regression in v2.3",
-              "state": "closed",
-              "labels": [
-                "performance",
-                "regression",
-                "v2.3"
-              ],
-              "user": "frank_user",
-              "created_at": "2024-07-10T07:45:00Z",
-              "body": "After upgrading to v2.3, the startup time increased from 2s to ~8s.",
+              "user": "ux_designer",
+              "created_at": "2024-07-15T11:30:00Z",
+              "body": null,
               "comments": [
                 {
-                  "user": "grace_maintainer",
-                  "created_at": "2024-07-11T09:00:00Z",
-                  "body": "Did you enable any new plugins?"
+                  "user": "ux_designer",
+                  "created_at": "2024-07-15T11:35:00Z",
+                  "body": "I think we need a dark mode switch in the settings."
                 },
                 {
-                  "user": "frank_user",
-                  "created_at": "2024-07-11T10:15:00Z",
-                  "body": "No, clean install."
+                  "user": "dev_lead",
+                  "created_at": "2024-07-16T14:00:00Z",
+                  "body": "We can implement using CSS prefers-color-scheme. Let's discuss scope."
                 },
                 {
-                  "user": "henry_dev",
-                  "created_at": "2024-07-12T14:20:00Z",
-                  "body": "We identified a bug in the asset loader; fix will be in v2.3.1."
+                  "user": "ux_designer",
+                  "created_at": "2024-07-17T09:10:00Z",
+                  "body": "Agree, start with toggle and later add theme persistence."
                 }
               ]
             }
           },
-          "value": "## Status\nClosed. Labels: performance, regression, v2.3. Reported by frank_user on 2024-07-10T07:45:00Z.\n\n## Problem\nStartup time regressed from 2 seconds to approximately 8 seconds after upgrading to v2.3.\n\n## Details\nUser reports clean install with no new plugins. henry_dev identified a bug in the asset loader; fix scheduled for v2.3.1.\n\n## Next step\nVerify the asset loader fix in v2.3.1 resolves the regression and close if confirmed.",
-          "score": 6.67,
-          "reason": "Details section does not quote relevant code or error from the issue; it only summarizes comments."
+          "value": "## Status\nOpen issue labeled enhancement, ui; reported by ux_designer on 2024-07-15.\n\n## Problem\nUsers lack a manual dark mode toggle in settings.\n\n## Details\nux_designer requests \"a dark mode switch in the settings.\" dev_lead proposes implementing with CSS `prefers-color-scheme` and suggests discussing scope. ux_designer agrees to start with the toggle and add theme persistence later.\n\n## Next step\nDefine the toggle's UI location and decide whether to use CSS media query or a manual class toggle for the initial implementation.",
+          "score": 8.33,
+          "reason": ""
         },
         {
           "config": "Ultra 550B think",
           "input": {
             "issue": {
-              "title": "Incorrect calculation for tax rate 0.075%",
+              "title": "App freezes intermittently",
+              "state": "open",
+              "labels": [
+                "bug"
+              ],
+              "user": "tester",
+              "created_at": "2024-09-05T16:45:00Z",
+              "body": "Sometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.",
+              "comments": [
+                {
+                  "user": "senior_dev",
+                  "created_at": "2024-09-06T10:00:00Z",
+                  "body": "Check if there are any long-running tasks on the main thread."
+                },
+                {
+                  "user": "tester",
+                  "created_at": "2024-09-06T11:20:00Z",
+                  "body": "I profiled and saw a spike in memory usage right before freeze."
+                }
+              ]
+            }
+          },
+          "value": "## Status\n- **State:** open  \n- **Labels:** bug  \n- **Reported by:** tester on 2024\u201109\u201105T16:45:00Z  \n\n## Problem\nThe UI intermittently freezes for several seconds when the save button is clicked.\n\n## Details\n- Senior_dev: \u201cCheck if there are any long-running tasks on the main thread.\u201d  \n- Tester: \u201cI profiled and saw a spike in memory usage right before freeze.\u201d\n\n## Next step\nProfile the save operation to locate main\u2011thread blocking code and memory spikes, then move heavy work off the UI thread.",
+          "score": 8.33,
+          "reason": "The Details section quotes comments instead of relevant code or error from the issue, as no code or error messages are present in the input."
+        },
+        {
+          "config": "Ultra 550B think",
+          "input": {
+            "issue": {
+              "title": "Integer overflow when processing >2^31 items",
               "state": "open",
               "labels": [
                 "bug",
-                "finance"
+                "performance"
               ],
-              "user": "iota_analyst",
-              "created_at": "2024-09-05T16:40:00Z",
-              "body": "When applying a tax rate of 0.075% to an amount of $1000, the system returns $0.75 instead of the expected $0.75? Actually 0.075% of 1000 is 0.75, but the UI shows 0.08 due to rounding.",
+              "user": "researcher",
+              "created_at": "2024-09-18T22:05:00Z",
+              "body": "When the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.",
               "comments": [
                 {
-                  "user": "kappa_dev",
-                  "created_at": "2024-09-06T09:10:00Z",
-                  "body": "Looks like a formatting issue; the value is being displayed with two decimal places."
+                  "user": "maintainer",
+                  "created_at": "2024-09-19T08:30:00Z",
+                  "body": "We should change the counter to use 64-bit integer or check bounds."
                 }
               ]
             }
           },
-          "value": "## Status\nOpen \u2013 labels: bug, finance \u2013 reported by iota_analyst on 2024\u201109\u201105T16:40:00Z.\n\n## Problem\nUI rounds tax calculation to two decimals, showing 0.08 instead of 0.75 for 0.075% of $1000.\n\n## Details\nThe system correctly computes 0.075\u202f% of 1000 = 0.75, but the UI displays 0.08 because the value is formatted with only two decimal places. Comment by kappa_dev confirms it is a formatting issue.\n\n## Next step\nAdjust the UI formatting to display the tax amount with sufficient precision (e.g., three decimal places) or apply proper rounding for small rates.",
-          "score": 8.33,
-          "reason": "The output states the UI shows 0.08, but the issue only says the UI 'shows 0.08 due to rounding' without confirming the exact displayed value; this specific numeric claim is not directly quoted from the issue text."
+          "value": "## Status\nOpen; labels: bug, performance; reported by researcher on 2024-09-18T22:05:00Z.\n\n## Problem\nLoop counter overflows to negative when processing more than 2,147,483,647 elements, causing an infinite loop.\n\n## Details\nInput lists exceeding 2^31 elements wrap the 32-bit signed counter to negative values, preventing loop termination.\n\n## Next step\nChange the loop counter to a 64-bit integer type or add an explicit bounds check before iteration.",
+          "score": 6.67,
+          "reason": "Details section describes the overflow mechanism but does not quote any code snippet or error message from the issue text."
         }
       ],
+      "probe": {
+        "input_index": 0,
+        "text": "## Status\n- **Open** \u2013 bug, high\u2011priority  \n- **Reporter:** alice_dev (2024\u201109\u201110)  \n- **Assignee:** bob_maintainer (requested more info)\n\n## Problem\nOpening a CSV file larger than 200\u202fMB causes an `IndexOutOfRangeException` that crashes the application.\n\n## Details\n- **Failure:** `IndexOutOfRangeException` when loading a large CSV.  \n- **Code/Error quoted:**  \n  ```csharp\n  var row = records[i];   // i = 215_000 exceeds count of 214_999\n  ```  \n- **Stack trace excerpt:**  \n  ```\n  at CsvReader.Load(string filePath) in CsvReader.cs:line 124\n  at App.Main() in Program.cs:line 45\n  ```\n\n## Next step\nReproduce the issue with the provided file and stack trace to identify why the index exceeds the record count, then fix the bounds check.",
+        "value": "## status - **open** \u2013 bug, high\u2011priority - **reporter:** alice_dev (2024\u201109\u201110) - **assignee:** bob_maintainer (requested more info) ## problem opening a csv file larger than 200 mb causes an `indexoutofrangeexception` that crashes the application. ## details - **failure:** `indexoutofrangeexception` when loading a large csv. - **code/error quoted:** ```csharp var row = records[i]; // i = 215_000 exceeds count of 214_999 ``` - **stack trace excerpt:** ``` at csvreader.load(string filepath) in csvreader.cs:line 124 at app.main() in program.cs:line 45 ``` ## next step reproduce the issue with the provided file and stack trace to identify why the index exceeds the record count, then fix the bounds check."
+      },
       "samples": [
         {
           "input": {
             "issue": {
+              "title": "Crash when opening large CSV file",
+              "state": "open",
+              "labels": [
+                "bug",
+                "high-priority"
+              ],
+              "user": "alice_dev",
+              "created_at": "2024-09-10T14:32:00Z",
+              "body": "When I try to open a CSV larger than 200MB, the application throws an IndexOutOfRangeException and exits.",
+              "comments": [
+                {
+                  "user": "bob_maintainer",
+                  "created_at": "2024-09-11T09:05:00Z",
+                  "body": "Can you share the exact file and stack trace?"
+                },
+                {
+                  "user": "alice_dev",
+                  "created_at": "2024-09-11T10:20:00Z",
+                  "body": "Attached is the file and trace: ..."
+                }
+              ]
+            }
+          },
+          "value": "## Status\n- **Open** \u2013 bug, high\u2011priority  \n- **Reporter:** alice_dev (2024\u201109\u201110)  \n- **Assignee:** bob_maintainer (requested more info)\n\n## Problem\nOpening a CSV file larger than 200\u202fMB causes an `IndexOutOfRangeException` that crashes the application.\n\n## Details\n- **Failure:** `IndexOutOfRangeException` when loading a large CSV.  \n- **Code/Error quoted:**  \n  ```csharp\n  var row = records[i];   // i = 215_000 exceeds count of 214_999\n  ```  \n- **Stack trace excerpt:**  \n  ```\n  at CsvReader.Load(string filePath) in CsvReader.cs:line 124\n  at App.Main() in Program.cs:line 45\n  ```\n\n## Next step\nReproduce the issue with the provided file and stack trace to identify why the index exceeds the record count, then fix the bounds check.",
+          "score": 5.0,
+          "reason": "The output adds an assignee not present in the input, the Problem sentence exceeds 40 words, the Details section includes code and stack trace not present in the issue, and the Next step describes two actions instead of one concrete step."
+        },
+        {
+          "input": {
+            "issue": {
+              "title": "Typo in documentation",
+              "state": "closed",
+              "labels": [
+                "documentation",
+                "good-first-issue"
+              ],
+              "user": "doc_writer",
+              "created_at": "2024-08-01T08:00:00Z",
+              "body": "On page 12 of the README, the word 'recieve' should be 'receive'.",
+              "comments": []
+            }
+          },
+          "value": "## Status\n- **Open/Closed**: closed  \n- **Labels**: documentation, good-first-issue  \n- **Reporter**: doc_writer (2024-08-01T08:00:00Z)\n\n## Problem\nThe README contains a typo: the word \u201crecieve\u201d should be \u201creceive\u201d.\n\n## Details\n- **Location**: Page 12 of the README.  \n- **Error**: \u201crecieve\u201d appears in the text.  \n- **Correction**: Replace with \u201creceive\u201d.\n\n## Next step\nUpdate the README to replace \u201crecieve\u201d with \u201creceive\u201d.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "issue": {
               "title": "Add dark mode toggle",
               "state": "open",
               "labels": [
                 "enhancement",
                 "ui"
               ],
-              "user": "carol_designer",
-              "created_at": "2024-08-22T14:12:00Z",
-              "body": "Users have asked for a dark mode option in the settings menu.",
-              "comments": []
-            }
-          },
-          "value": "\n## Status\n- **Open** issue  \n- **Labels:** `enhancement`, `ui`  \n- **Reported by:** carol_designer at 2024-08-22T14:12:00Z  \n\n## Problem\nAdd a dark mode toggle to the settings menu so users can switch the UI appearance.\n\n## Details\nThe request is to implement a dark mode option in the settings menu; no code or error is present yet.\n\n## Next step\nCreate a UI settings page and add a toggle switch for dark mode.",
-          "score": 10.0,
-          "reason": "all checks passed"
-        },
-        {
-          "input": {
-            "issue": {
-              "title": "Fix login redirect loop",
-              "state": "open",
-              "labels": [
-                "bug",
-                "auth"
-              ],
-              "user": "alice_dev",
-              "created_at": "2024-09-25T08:30:00Z",
-              "body": "After submitting credentials, the user is redirected back to login page indefinitely.",
+              "user": "ux_designer",
+              "created_at": "2024-07-15T11:30:00Z",
+              "body": null,
               "comments": [
                 {
-                  "user": "bob_support",
-                  "created_at": "2024-09-25T09:00:00Z",
-                  "body": "Can you reproduce on incognito?"
+                  "user": "ux_designer",
+                  "created_at": "2024-07-15T11:35:00Z",
+                  "body": "I think we need a dark mode switch in the settings."
                 },
                 {
-                  "user": "alice_dev",
-                  "created_at": "2024-09-25T09:05:00Z",
-                  "body": "Yes, happens in Chrome and Firefox."
+                  "user": "dev_lead",
+                  "created_at": "2024-07-16T14:00:00Z",
+                  "body": "We can implement using CSS prefers-color-scheme. Let's discuss scope."
+                },
+                {
+                  "user": "ux_designer",
+                  "created_at": "2024-07-17T09:10:00Z",
+                  "body": "Agree, start with toggle and later add theme persistence."
                 }
               ]
             }
           },
-          "value": "\n## Status\n- Open  \n- Labels: bug, auth  \n- Reported by alice_dev on 2024-09-25T08:30:00Z  \n\n## Problem\nUser is stuck in a login redirect loop after submitting credentials.  \n\n## Details\nThe app redirects back to the login page indefinitely. (\"After submitting credentials, the user is redirected back to login page indefinitely.\")  \n\n## Next step\nReview the authentication redirect logic and session cookie handling to locate the loop cause.",
-          "score": 10.0,
-          "reason": "all checks passed"
+          "value": "## Status\n- **Open** issue with `enhancement` and `ui` labels.  \n- Reported by **ux_designer** on 2024\u201107\u201115.  \n- No assignee or milestone defined yet.\n\n## Problem\nAdd a dark\u2011mode toggle to the settings UI so users can switch between light and dark themes.\n\n## Details\n- The UI currently lacks any theme switching control.  \n- **Error/quote:** No error reported; the request is for a new UI element.  \n- Implementation suggestion: use `prefers-color-scheme` CSS with a persistent toggle.\n\n## Next step\nCreate a prototype for the dark\u2011mode toggle in the settings page and define persistence logic.",
+          "score": 8.33,
+          "reason": "All checks pass: the output contains exactly four ## headings in the correct order; the Problem section is a single sentence of 18 words; the Details section accurately notes that no error was reported and quotes the implementation suggestion; the Next step describes one concrete action; and no facts are hallucinated beyond the issue content."
         },
         {
           "input": {
             "issue": {
-              "title": "Update README with contribution guidelines",
+              "title": "Unexpected behavior after update",
               "state": "open",
-              "labels": [
-                "documentation"
-              ],
-              "user": "doc_writer",
-              "created_at": "2024-09-20T12:00:00Z",
+              "labels": [],
+              "user": "",
+              "created_at": "2024-09-20T03:12:00Z",
               "body": null,
               "comments": []
             }
           },
-          "value": "\n## Status\n- **State:** open  \n- **Labels:** documentation  \n- **Reporter:** doc_writer (2024\u201109\u201120T12:00:00Z)\n\n## Problem\nThe repository\u2019s README is missing contribution guidelines, which may discourage new contributors.\n\n## Details\nThe issue notes that \u201cREADME does not contain contribution guidelines.\u201d No code or error is present; the problem is the absence of documentation.\n\n## Next step\nAdd a \u201cContributing\u201d section to the README that outlines how contributors can get involved.",
+          "value": "## Status\n- **Open**\n- No labels\n- Reported by anonymous user at 2024-09-20T03:12:00Z\n\n## Problem\nThe user reports unexpected behavior following an update.\n\n## Details\nNo specific failure description, code snippet, or error message was provided in the issue.\n\n## Next step\nRequest clarification from the reporter about the exact behavior observed and the steps to reproduce it.",
           "score": 10.0,
           "reason": "all checks passed"
         },
         {
           "input": {
             "issue": {
-              "title": "Handle negative numbers in tax calculation",
-              "state": "closed",
-              "labels": [],
-              "user": "42",
-              "created_at": "2024-09-15T14:22:11-04:00",
-              "body": "When a negative amount is entered, the tax becomes negative which breaks totals.",
+              "title": "App freezes intermittently",
+              "state": "open",
+              "labels": [
+                "bug"
+              ],
+              "user": "tester",
+              "created_at": "2024-09-05T16:45:00Z",
+              "body": "Sometimes the UI freezes for a few seconds when clicking the save button. Other times it works fine. Not sure if it's related to network or local storage.",
               "comments": [
                 {
-                  "user": "math_reviewer",
-                  "created_at": "2024-09-15T15:00:00Z",
-                  "body": "Should we clamp to zero or show error?"
+                  "user": "senior_dev",
+                  "created_at": "2024-09-06T10:00:00Z",
+                  "body": "Check if there are any long-running tasks on the main thread."
                 },
                 {
-                  "user": "42",
-                  "created_at": "2024-09-15T15:10:00Z",
-                  "body": "Clamp to zero and show warning."
+                  "user": "tester",
+                  "created_at": "2024-09-06T11:20:00Z",
+                  "body": "I profiled and saw a spike in memory usage right before freeze."
                 }
               ]
             }
           },
-          "value": "\n## Status\n- **closed**\n- No labels\n- Reported by **42** on **2024-09-15T14:22:11-04:00**\n\n## Problem\nNegative amounts cause the tax to become negative, breaking the totals.\n\n## Details\nThe calculation returns a negative tax value for negative inputs, which disrupts the total.  \n*\u201cClamp to zero and show warning.\u201d* \u2013 comment by **42**\n\n## Next step\nImplement clamping to zero and add a warning message.",
-          "score": 10.0,
-          "reason": "all checks passed"
-        },
-        {
-          "input": {
-            "issue": {
-              "title": "Add unit tests for edge case parser",
-              "state": "open",
-              "labels": [
-                "test",
-                "good first issue"
-              ],
-              "user": "ci_bot",
-              "created_at": "2024-09-24T00:00:00Z",
-              "body": "Parser fails when input contains Unicode surrogate pairs.",
-              "comments": [
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:00:00Z",
-                  "body": "Please add test case U+1F600 (grinning emoji)."
-                },
-                {
-                  "user": "ci_bot",
-                  "created_at": "2024-09-24T01:05:00Z",
-                  "body": "Added test, now passes."
-                },
-                {
-                  "user": "lead_dev",
-                  "created_at": "2024-09-24T01:10:00Z",
-                  "body": "LGTM, merge when ready."
-                }
-              ]
-            }
-          },
-          "value": "\n## Status\n- Open  \n- Labels: test, good first issue  \n- Reported by ci_bot at 2024-09-24T00:00:00Z  \n\n## Problem\nParser fails when the input contains Unicode surrogate pairs.  \n\n## Details\nThe failure involves surrogate pairs such as U+1F600; the comment requests adding a test for this case: \u201cPlease add test case U+1F600 (grinning emoji).\u201d  \n\n## Next step\nMerge the PR that adds the test case.",
-          "score": 10.0,
-          "reason": "all checks passed"
-        },
-        {
-          "input": {
-            "issue": {
-              "title": "Typo in error message",
-              "state": "open",
-              "labels": [
-                "trivial"
-              ],
-              "user": "anon_user",
-              "created_at": "2024-09-23T18:45:00Z",
-              "body": "",
-              "comments": []
-            }
-          },
-          "value": "\n## Status\n- Open\n- Label: `trivial`\n- Reported by: `anon_user` on 2024-09-23T18:45:00Z\n\n## Problem\nA typo appears in an error message shown to users.\n\n## Details\nThe issue mentions a typo in an error message but does not provide the exact code or quoted error text.\n\n## Next step\nFix the typo in the error message text.",
+          "value": "## Status\n- **Open**\n- **Labels:** bug\n- **Reporter:** tester (2024-09-05T16:45:00Z)\n- **Recent comment:** senior_dev (2024-09-06T10:00:00Z) suggested checking for long\u2011running tasks on the main thread; tester (2024-09-06T11:20:00Z) observed a memory spike before freezes.\n\n## Problem\nThe UI intermittently freezes for a few seconds when the save button is clicked.\n\n## Details\n- **Failure:** UI freeze lasting several seconds on save button clicks.\n- **Relevant observation:** Memory usage spikes just before each freeze (profiled by tester).\n- **Potential cause hint:** Long\u2011running tasks on the main thread (senior_dev\u2019s suggestion).\n\n## Next step\nInvestigate and eliminate long\u2011running operations on the main thread, focusing on code paths triggered by the save button and the associated memory spike.",
           "score": 8.33,
-          "reason": "Next step assumes the typo is known and fixable, but the issue provides no location or exact text, so the only defensible action is to ask the reporter for details."
+          "reason": "Problem section contains 17 words, exceeding the 40-word limit by a small margin but the instruction says 'at most 40 words' and this is within that; however the instruction also says 'one sentence' and the Problem section is one sentence, so this passes. Wait, recount: 'The UI intermittently freezes for a few seconds when the save button is clicked.' That's 14 words. So it's within 40 words. The failure is that Details section does not quote relevant code or error from the issue; it only summarizes observations. The instruction requires quoting relevant code or error, which is absent. Therefore check 3 fails."
+        },
+        {
+          "input": {
+            "issue": {
+              "title": "Integer overflow when processing >2^31 items",
+              "state": "open",
+              "labels": [
+                "bug",
+                "performance"
+              ],
+              "user": "researcher",
+              "created_at": "2024-09-18T22:05:00Z",
+              "body": "When the input list contains more than 2,147,483,647 elements, the loop counter wraps to negative causing infinite loop.",
+              "comments": [
+                {
+                  "user": "maintainer",
+                  "created_at": "2024-09-19T08:30:00Z",
+                  "body": "We should change the counter to use 64-bit integer or check bounds."
+                }
+              ]
+            }
+          },
+          "value": "## Status\n- **Open**\n- **Labels:** `bug`, `performance`\n- **Reporter:** researcher\n- **Reported at:** 2024-09-18T22:05:00Z\n\n## Problem\nThe loop counter overflows when processing more than\u202f2\u00b3\u00b9\u202fitems, wrapping to a negative value and causing an infinite loop.\n\n## Details\nThe code uses a signed 32\u2011bit integer for the loop index. When the input list exceeds 2,147,483,647 elements, the counter exceeds `INT_MAX` and wraps to a negative number, preventing the loop termination condition from being met.\n\n```python\nfor i in range(len(data)):\n    # ... process data[i] ...\n```\n\nWith `len(data) > 2**31`, `i` becomes negative, leading to an endless iteration.\n\n## Next step\nReplace the loop counter with a 64\u2011bit integer type (e.g., `int64` or Python\u2019s arbitrary\u2011precision `int`) or add a bounds check before entering the loop. This will prevent overflow and allow processing of arbitrarily large lists.",
+          "score": 8.33,
+          "reason": ""
         }
       ],
-      "adaptive": true,
       "entry": {
         "file": "digest.py",
         "function": "digest"
@@ -1952,9 +1387,19 @@
         "output": 0.24,
         "url": "https://assets.nebius.com/assets/309d5e28-9376-4a45-81cf-dbb7f27a857c/Nebius%20Token%20Factory%20x%20NVIDIA%20Nemotron%20x%20clinical.pdf?cache-buster=2026-10-19T21%3A51%3A48.334Z"
       },
+      "nvidia/Nemotron-3_5-Lightning": {
+        "input": 0.06,
+        "output": 0.24,
+        "url": "https://mastra.ai/models/providers/nebius"
+      },
       "nvidia/nemotron-3-super-120b-a12b": {
         "input": 0.3,
         "output": 0.9,
+        "url": "https://assets.nebius.com/assets/309d5e28-9376-4a45-81cf-dbb7f27a857c/Nebius%20Token%20Factory%20x%20NVIDIA%20Nemotron%20x%20clinical.pdf?cache-buster=2026-10-19T21%3A51%3A48.334Z"
+      },
+      "nvidia/Nemotron-3-Ultra-550b-a55b": {
+        "input": 1.0,
+        "output": 3.0,
         "url": "https://assets.nebius.com/assets/309d5e28-9376-4a45-81cf-dbb7f27a857c/Nebius%20Token%20Factory%20x%20NVIDIA%20Nemotron%20x%20clinical.pdf?cache-buster=2026-10-19T21%3A51%3A48.334Z"
       }
     },
@@ -1968,31 +1413,27 @@
         "url": ""
       },
       {
-        "fact": "Supported parameters include max_tokens, temperature, top_p, top_k, n, stream, stream_options, stop, presence_penalty, frequency_penalty, logit_bias, logprobs, top_logprobs, user, extra_body, response_format, model, messages",
+        "fact": "Supported parameters include max_tokens, temperature, top_p, top_k, n, stream, stream_options, stop, presence_penalty, frequency_penalty, logit_bias, logprobs, top_logprobs, user, and extra_body",
         "url": ""
       },
       {
-        "fact": "JSON output via response_format={\"type\": \"json_object\"}",
+        "fact": "JSON output can be enabled via response_format: { type: \"json_object\" } or response_format: { type: \"json_schema\", json_schema: <schema> }",
         "url": ""
       },
       {
-        "fact": "Structured JSON output via response_format={\"type\": \"json_schema\", \"json_schema\": <schema>}",
+        "fact": "Nemotron thinking can be disabled by setting extra_body.chat_template_kwargs.enable_thinking: false",
         "url": ""
       },
       {
-        "fact": "Guided JSON via extra_body.guided_json",
+        "fact": "For Nemotron models, when enable_thinking is false, force_nonempty_content may be needed to avoid empty content due to parser behavior",
         "url": ""
       },
       {
-        "fact": "Enable/disable Nemotron thinking via extra_body.chat_template_kwargs.enable_thinking (true/false)",
+        "fact": "Anthropic-specific parameters like thinking are not supported; use chat_template_kwargs instead for reasoning control",
         "url": ""
       },
       {
-        "fact": "Reasoning budget controlled via extra_body.reasoning_budget",
-        "url": ""
-      },
-      {
-        "fact": "Anthropic-specific parameters (like thinking blocks) are not supported; use OpenAI-compatible parameters instead",
+        "fact": "The OpenAI-compatible API forwards chat_template_kwargs to vLLM for Nemotron models when properly configured",
         "url": ""
       }
     ],
@@ -2005,12 +1446,12 @@
   },
   "tests": {
     "ok": true,
-    "summary": "1/1 passed",
+    "summary": "2/2 passed",
     "iterations": 1,
     "history": [
       {
         "n": 1,
-        "summary": "1/1 passed",
+        "summary": "2/2 passed",
         "action": "wrote live smoke tests (repo had none)"
       }
     ],
@@ -2019,77 +1460,77 @@
   "limitations": [
     "Baseline cost is an estimate: source-model token counts are approximated with Nemotron's tokenizer, and for o-series models hidden reasoning is approximated with Nemotron Ultra's thinking length.",
     "The reference answers come from Nemotron 3 Ultra with thinking, not from the original provider (no OpenAI/Anthropic key is needed or used); the repo's own tests are the independent check.",
-    "Each function was evaluated on 12 generated inputs; rare inputs can still behave differently, so keep monitoring after merging."
+    "Each function was evaluated on 6 generated inputs; rare inputs can still behave differently, so keep monitoring after merging."
   ],
-  "seconds": 131,
+  "seconds": 99,
   "summary": {
-    "total_before": 1.7358333333333331,
-    "total_after": 0.14206,
-    "saving_pct": 91.81603456553049
+    "total_before": 1.8445833333333332,
+    "total_after": 0.05827,
+    "saving_pct": 96.84102100745426
   },
   "ledger": [
     {
       "role": "judge",
       "model": "Ultra 550B",
-      "calls": 108,
-      "tokens": 89314,
-      "cost": 0.10144000000000002
+      "calls": 36,
+      "tokens": 31393,
+      "cost": 0.035229
     },
     {
       "role": "candidate",
       "model": "Ultra 550B",
-      "calls": 36,
-      "tokens": 18320,
-      "cost": 0.03812
-    },
-    {
-      "role": "candidate",
-      "model": "Super 120B",
-      "calls": 36,
-      "tokens": 17879,
-      "cost": 0.0110391
-    },
-    {
-      "role": "test-writer",
-      "model": "Ultra 550B",
-      "calls": 1,
-      "tokens": 3637,
-      "cost": 0.008331
-    },
-    {
-      "role": "eval-writer",
-      "model": "Super 120B",
-      "calls": 3,
-      "tokens": 8610,
-      "cost": 0.0060701999999999996
+      "calls": 12,
+      "tokens": 5831,
+      "cost": 0.011577
     },
     {
       "role": "rewriter",
       "model": "Ultra 550B",
       "calls": 1,
-      "tokens": 3138,
-      "cost": 0.005732
+      "tokens": 3080,
+      "cost": 0.005524
+    },
+    {
+      "role": "test-writer",
+      "model": "Ultra 550B",
+      "calls": 1,
+      "tokens": 2818,
+      "cost": 0.005404
     },
     {
       "role": "planner",
       "model": "Ultra 550B",
       "calls": 1,
-      "tokens": 2444,
-      "cost": 0.004372
+      "tokens": 2460,
+      "cost": 0.00442
+    },
+    {
+      "role": "candidate",
+      "model": "Super 120B",
+      "calls": 12,
+      "tokens": 6231,
+      "cost": 0.0038331
     },
     {
       "role": "researcher",
       "model": "Super 120B",
       "calls": 3,
-      "tokens": 9885,
-      "cost": 0.0032799000000000005
+      "tokens": 10904,
+      "cost": 0.0035694
+    },
+    {
+      "role": "eval-writer",
+      "model": "Super 120B",
+      "calls": 1,
+      "tokens": 3034,
+      "cost": 0.0023201999999999997
     },
     {
       "role": "candidate",
       "model": "Nano 30B",
-      "calls": 36,
-      "tokens": 19792,
-      "cost": 0.0032344799999999996
+      "calls": 12,
+      "tokens": 7087,
+      "cost": 0.0011684399999999998
     }
   ]
 }

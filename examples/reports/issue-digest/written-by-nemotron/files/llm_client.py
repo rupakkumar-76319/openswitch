@@ -10,7 +10,7 @@ from openai import OpenAI
 CONFIG = configparser.ConfigParser()
 CONFIG.read(Path(__file__).with_name("settings.ini"))
 
-# USD per 1M tokens, from Nebius Token Factory pricing.
+# USD per 1M tokens, from the provider's pricing page.
 PRICES = {
     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {"input": 0.06, "output": 0.24},
     "nvidia/Nemotron-3_5-Lightning": {"input": 0.06, "output": 0.24},
@@ -40,8 +40,10 @@ def _client() -> OpenAI:
     key = os.getenv("NEBIUS_API_KEY")
     if not key:
         raise EnvironmentError("Set NEBIUS_API_KEY (see README).")
-    base_url = os.environ.get("NEBIUS_BASE_URL", "https://api.tokenfactory.nebius.com/v1")
-    return OpenAI(base_url=base_url, api_key=key)
+    return OpenAI(
+        base_url=os.environ.get("NEBIUS_BASE_URL", "https://api.tokenfactory.nebius.com/v1"),
+        api_key=key,
+    )
 
 
 def complete(model: str, system: str, user: str) -> Completion:
@@ -50,10 +52,11 @@ def complete(model: str, system: str, user: str) -> Completion:
     resp = _client().chat.completions.create(
         model=model,
         temperature=0.0,
-        max_tokens=max(CONFIG.getint("llm", "max_output_tokens"), 2160),
+        max_tokens=max(CONFIG.getint("llm", "max_output_tokens"), 512),
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
     )
     return Completion(model=model, text=resp.choices[0].message.content, input_tokens=resp.usage.prompt_tokens,
                       output_tokens=resp.usage.completion_tokens, seconds=time.time() - start,
                       raw=resp.model_dump())
+

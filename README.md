@@ -13,9 +13,9 @@ openswitch migrate path/to/your-repo
 
 | | HelpDesk AI (6 call sites, OpenAI + Anthropic) | Issue Digest (config-driven model, no tests) |
 |---|---|---|
-| Estimated LLM cost per 1K calls | **$5.18 → $0.47 (91% lower)** | **$1.74 → $0.14 (92% lower)** |
-| Tests after migration | **13/13 pass** (repo's own tests, unmodified) | **1/1 pass** (smoke tests written by OpenSwitch) |
-| What the agent itself spent | $0.30, 5 min | $0.18, 2 min |
+| Estimated LLM cost per 1K calls | **$7.45 → $0.39 (95% lower)** | **$1.84 → $0.06 (97% lower)** |
+| Tests after migration | **13/13 pass** (repo's own tests, unmodified) | **2/2 pass** (smoke tests written by OpenSwitch) |
+| What the agent itself spent | $0.26 | $0.07, under 2 min |
 
 Sample reports: [`examples/reports/helpdesk-ai`](examples/reports/helpdesk-ai/OPENSWITCH_REPORT.md) and
 [`examples/reports/issue-digest`](examples/reports/issue-digest/OPENSWITCH_REPORT.md).
@@ -62,13 +62,24 @@ Sample reports: [`examples/reports/helpdesk-ai`](examples/reports/helpdesk-ai/OP
    - no leftover Anthropic import or OpenAI key
 
    If the model came from config, the checker requires that the config is changed and that the code doesn't
-   hard-code the model. Then a behavioural check *runs* the migrated app against the fake SDK and confirms the
-   request it would really send carries the decided model and thinking flag. A rejected rewrite goes back to
-   Ultra with the list of problems.
-6. **Test and iterate.** OpenSwitch runs `pytest`. If the repo has no tests, Ultra writes live smoke tests from
-   the output contracts. When tests fail, Ultra diagnoses each failure as either a code bug (the file is
-   rewritten with the fix) or a model that is too weak (that call moves up to the next measured configuration).
-   It never edits the repo's own tests.
+   hard-code the model. Then a behavioural check *runs* the migrated app against the fake SDK and confirms
+   three things:
+   - the request it would really send carries the decided model, thinking flag and enough `max_tokens`
+   - **behaviour is preserved:** a real model answer recorded during evals is replayed through the migrated
+     code, and the app must return exactly what the original code returned
+   - no public function changes its parameters
+
+   A rejected rewrite goes back to Ultra with the list of problems.
+6. **Test and iterate.** OpenSwitch runs `pytest`.
+   - **No tests in the repo:** Ultra writes live smoke tests. It gets the exact import lines and the return
+     shapes the real app produced during evals, and each generated file must pass `pytest --collect-only`
+     before it counts.
+   - **When tests fail:** Ultra diagnoses each failure as one of three things:
+     - a code bug: the file is rewritten with the fix
+     - a model that is too weak: that call moves up to the next measured configuration
+     - a wrong agent-written test: only OpenSwitch's own smoke test is rewritten
+   - **Limits:** the repo's own tests are never edited, and app behaviour is never changed to satisfy a test. A
+     proposed fix that fails the checker is discarded and the last good version is kept.
 7. **Report and commit.** OpenSwitch creates a git branch `openswitch/nemotron` containing the migrated code,
    `OPENSWITCH_REPORT.md` (ready to use as a PR description), `.openswitch/report.html` and machine-readable
    `result.json`.
@@ -84,8 +95,8 @@ Sample reports: [`examples/reports/helpdesk-ai`](examples/reports/helpdesk-ai/OP
 | Candidates under test | Nano 30B, Super 120B, Ultra 550B, each with thinking on and off | The point of the project: measure, don't guess |
 
 The reasoning switch (`chat_template_kwargs: {"enable_thinking": ...}`) is treated as a model choice of its own.
-On HelpDesk's refund-policy math, Nemotron Nano *with* thinking scored 9.2/10 in the final run while Super
-*without* thinking scored 3.3/10. Nano with thinking beat Super without thinking by more than 4 points in every
+On HelpDesk's refund-policy math, Nemotron Nano *with* thinking scored 10/10 in the final run while Super
+*without* thinking scored 1.7/10. Nano with thinking beat Super without thinking by more than 4 points in every
 run we did. A small model with thinking can beat a bigger model without it. The migrated code sets this flag
 explicitly per call, with enough `max_tokens` headroom for thinking.
 
@@ -101,16 +112,16 @@ Anthropic key is used at any step. The ledgers in
 
 | Role | Nemotron model | Calls | Tokens | Cost |
 |---|---|---|---|---|
-| Judge (checklist grading) | Ultra 550B | 366 | 213,349 | $0.245 |
-| Candidates under test | Nano 30B | 172 | 57,848 | $0.010 |
-| Candidates under test | Super 120B | 172 | 49,103 | $0.031 |
-| Candidates under test | Ultra 550B | 172 | 54,717 | $0.121 |
-| Eval-input writer | Super 120B | 18 | 29,447 | $0.020 |
-| Researcher (reads Tavily results) | Super 120B | 9 | 29,727 | $0.010 |
-| Planner | Ultra 550B | 2 | 9,422 | $0.020 |
-| Rewriter (the code changes) | Ultra 550B | 2 | 8,016 | $0.015 |
-| Test writer | Ultra 550B | 1 | 3,637 | $0.008 |
-| **Total** | | **914** | **455,266** | **$0.48** |
+| Judge (checklist grading) | Ultra 550B | 236 | 137,318 | $0.157 |
+| Candidates under test | Nano 30B | 108 | 31,088 | $0.005 |
+| Candidates under test | Super 120B | 108 | 32,346 | $0.022 |
+| Candidates under test | Ultra 550B | 108 | 37,945 | $0.089 |
+| Researcher (reads Tavily results) | Super 120B | 9 | 32,766 | $0.011 |
+| Eval-input writer | Super 120B | 14 | 23,346 | $0.016 |
+| Rewriter (the code changes) | Ultra 550B | 2 | 8,068 | $0.015 |
+| Planner | Ultra 550B | 2 | 7,550 | $0.014 |
+| Test writer | Ultra 550B | 1 | 2,818 | $0.005 |
+| **Total** | | **588** | **313,245** | **$0.34** |
 
 The code Nemotron 3 Ultra wrote in these runs (the migrated application files, config changes and the generated
 smoke test) is kept in [`examples/reports/*/written-by-nemotron/`](examples/reports/), as a full diff and as
@@ -126,7 +137,7 @@ project author with an AI coding assistant. Nemotron is the model the tool runs 
   6 configurations per call site is a loop, not 6 integrations. The migrated apps keep using the `openai` SDK and
   only change `base_url`, key and model.
 - **Price per token low enough to evaluate before migrating.** A full migration of a 6-call-site app, including
-  about 300 candidate runs, the judge calls, planning, research, rewriting and tests, cost the agent $0.30.
+  over 200 candidate runs, the judge calls, planning, research, rewriting and tests, cost the agent $0.26.
 - **The thinking switch per request.** Turning reasoning on or off without changing models gives a cheaper path
   than moving up a model size, and OpenSwitch measures both.
 - **Structured output (`response_format: json_object`)** works the same as on OpenAI, so JSON extraction calls
@@ -173,9 +184,9 @@ app's own Python environment.
   Judging uses the same model family, so it may favour Nemotron's style; pass/fail checklists and the app's
   own functional checks reduce that bias.
 - **Evals are small (6 inputs per call site, 12 when the decision is close)**, so the scores carry noise.
-  Between runs a call can land on a different configuration of similar cost. Across our final runs the total
-  saving stayed above 90%, and the report shows every configuration's score so a reviewer can see how close
-  each decision was.
+  Between runs a call can land on a different configuration. Most of our runs saved more than 90%, but one
+  test run on Issue Digest picked a pricier configuration and saved 67%. The report shows every
+  configuration's score so a reviewer can see how close each decision was.
 - **Cheaper is not guaranteed for every call.** When no small configuration meets the quality bar, OpenSwitch
   picks a bigger one even if it costs more than the original (for example a `gpt-4o-mini` classifier). The report
   flags these calls as "costs more".
