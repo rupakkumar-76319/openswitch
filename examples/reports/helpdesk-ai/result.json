@@ -1,0 +1,2928 @@
+{
+  "repo_name": "helpdesk-ai",
+  "sites": [
+    {
+      "site": "helpdesk/ai.py:classify_ticket",
+      "function": "classify_ticket",
+      "file": "helpdesk/ai.py",
+      "source_model": "gpt-4o-mini",
+      "provider": "openai",
+      "plan": {
+        "purpose": "Route a customer support ticket to one of the predefined queues (billing, shipping, technical, account, refund).",
+        "output_contract": "Returns a single lowercase string from the set CATEGORIES, or \"technical\" as fallback. Downstream code (pipeline.handle) uses this value as the \"queue\" field in the output dictionary.",
+        "difficulty": "low",
+        "rubric": [
+          "Output is exactly one of the allowed categories (case-insensitive) or \"technical\".",
+          "No extra text, punctuation, or explanation in the response.",
+          "Consistent classification for semantically similar tickets."
+        ],
+        "risks": [
+          "Model may output a category not in the list (code falls back to \"technical\").",
+          "System prompt includes the dynamic category list; must be passed correctly to the new model.",
+          "Temperature=0 ensures determinism, but different models may have different decision boundaries."
+        ],
+        "effective_model": "gpt-4o-mini",
+        "related_files": [
+          "helpdesk/ai.py",
+          "helpdesk/pipeline.py",
+          "requirements.txt"
+        ],
+        "eval_entrypoint": "helpdesk/ai.py:classify_ticket"
+      },
+      "checks": [
+        "Every fact, number, label and extracted value is correct for this input (the reference is a hint from a strong model, but it can be wrong)",
+        "Output is exactly one of the allowed categories (case-insensitive) or \"technical\".",
+        "No extra text, punctuation, or explanation in the response.",
+        "Consistent classification for semantically similar tickets."
+      ],
+      "n_inputs": 6,
+      "inputs": [
+        {
+          "text": "I was charged $45.99 on my credit card for order #112233 but I never received the item. Can you check the billing?"
+        },
+        {
+          "text": "My package shipped on May 1st and it's now May 10th with no tracking updates. Where is my shipment?"
+        },
+        {
+          "text": "I keep getting an error 'Invalid credentials' when trying to log into my account on the mobile app."
+        },
+        {
+          "text": "I would like to update the email address associated with my account from old@example.com to new@example.com."
+        },
+        {
+          "text": "I want to return the blender I bought on April 15th (order #445566). It arrived damaged and I need a refund including shipping."
+        },
+        {
+          "text": "The item I ordered seems to have a problem; I'm not sure if it's broken or just missing a part. Help?"
+        }
+      ],
+      "prompts": [
+        [
+          {
+            "role": "system",
+            "content": "You route customer support tickets. Answer with exactly one word from: billing, shipping, technical, account, refund."
+          },
+          {
+            "role": "user",
+            "content": "I was charged $45.99 on my credit card for order #112233 but I never received the item. Can you check the billing?"
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You route customer support tickets. Answer with exactly one word from: billing, shipping, technical, account, refund."
+          },
+          {
+            "role": "user",
+            "content": "My package shipped on May 1st and it's now May 10th with no tracking updates. Where is my shipment?"
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You route customer support tickets. Answer with exactly one word from: billing, shipping, technical, account, refund."
+          },
+          {
+            "role": "user",
+            "content": "I keep getting an error 'Invalid credentials' when trying to log into my account on the mobile app."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You route customer support tickets. Answer with exactly one word from: billing, shipping, technical, account, refund."
+          },
+          {
+            "role": "user",
+            "content": "I would like to update the email address associated with my account from old@example.com to new@example.com."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You route customer support tickets. Answer with exactly one word from: billing, shipping, technical, account, refund."
+          },
+          {
+            "role": "user",
+            "content": "I want to return the blender I bought on April 15th (order #445566). It arrived damaged and I need a refund including shipping."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You route customer support tickets. Answer with exactly one word from: billing, shipping, technical, account, refund."
+          },
+          {
+            "role": "user",
+            "content": "The item I ordered seems to have a problem; I'm not sure if it's broken or just missing a part. Help?"
+          }
+        ]
+      ],
+      "configs": [
+        {
+          "config": "Nano 30B fast",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 67,
+          "avg_out": 2,
+          "max_out": 3,
+          "cost_per_1k": 0.0046,
+          "avg_seconds": 1.17,
+          "passes": true
+        },
+        {
+          "config": "Nano 30B think",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 9.17,
+          "min_score": 5.0,
+          "avg_in": 67,
+          "avg_out": 53,
+          "max_out": 62,
+          "cost_per_1k": 0.0168,
+          "avg_seconds": 1.07,
+          "passes": false
+        },
+        {
+          "config": "Super 120B fast",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 9.17,
+          "min_score": 5.0,
+          "avg_in": 67,
+          "avg_out": 3,
+          "max_out": 3,
+          "cost_per_1k": 0.0224,
+          "avg_seconds": 0.64,
+          "passes": false
+        },
+        {
+          "config": "Super 120B think",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 67,
+          "avg_out": 131,
+          "max_out": 370,
+          "cost_per_1k": 0.1382,
+          "avg_seconds": 1.5,
+          "passes": true
+        },
+        {
+          "config": "Ultra 550B fast",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 67,
+          "avg_out": 2,
+          "max_out": 3,
+          "cost_per_1k": 0.07417,
+          "avg_seconds": 0.58,
+          "passes": true
+        },
+        {
+          "config": "Ultra 550B think",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 67,
+          "avg_out": 86,
+          "max_out": 125,
+          "cost_per_1k": 0.32567,
+          "avg_seconds": 0.92,
+          "passes": true
+        }
+      ],
+      "chosen": {
+        "config": "Nano 30B fast",
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "thinking": false,
+        "functional": 1.0,
+        "mean_score": 10.0,
+        "min_score": 10.0,
+        "avg_in": 67,
+        "avg_out": 2,
+        "max_out": 3,
+        "cost_per_1k": 0.0046,
+        "avg_seconds": 1.17,
+        "passes": true
+      },
+      "best_score": 10.0,
+      "threshold": 9.25,
+      "recommended_max_tokens": 512,
+      "reference_out_tokens": 86.33333333333333,
+      "ultra_fast_out_tokens": 2.5,
+      "avg_in_tokens": 66.66666666666667,
+      "failures": [
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "text": "I keep getting an error 'Invalid credentials' when trying to log into my account on the mobile app."
+          },
+          "value": "technical",
+          "score": 5.0,
+          "reason": "The ticket describes an 'Invalid credentials' login error on the mobile app, which is an account access issue and should be classified as 'account', not 'technical'."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "text": "I keep getting an error 'Invalid credentials' when trying to log into my account on the mobile app."
+          },
+          "value": "technical",
+          "score": 5.0,
+          "reason": "The ticket describes an 'Invalid credentials' login error on the mobile app, which is an account access issue and should be classified as 'account', not 'technical'."
+        }
+      ],
+      "samples": [
+        {
+          "input": {
+            "text": "I was charged $45.99 on my credit card for order #112233 but I never received the item. Can you check the billing?"
+          },
+          "value": "billing",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "My package shipped on May 1st and it's now May 10th with no tracking updates. Where is my shipment?"
+          },
+          "value": "shipping",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "I keep getting an error 'Invalid credentials' when trying to log into my account on the mobile app."
+          },
+          "value": "account",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "I would like to update the email address associated with my account from old@example.com to new@example.com."
+          },
+          "value": "account",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "I want to return the blender I bought on April 15th (order #445566). It arrived damaged and I need a refund including shipping."
+          },
+          "value": "refund",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "The item I ordered seems to have a problem; I'm not sure if it's broken or just missing a part. Help?"
+          },
+          "value": "technical",
+          "score": 10.0,
+          "reason": "all checks passed"
+        }
+      ],
+      "entry": {
+        "file": "helpdesk/ai.py",
+        "function": "classify_ticket"
+      }
+    },
+    {
+      "site": "helpdesk/ai.py:extract_order",
+      "function": "extract_order",
+      "file": "helpdesk/ai.py",
+      "source_model": "gpt-4o",
+      "provider": "openai",
+      "plan": {
+        "purpose": "Extract structured order fields (order_id, product, quantity, order_date) from a free-text ticket.",
+        "output_contract": "Returns a dict with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (string YYYY-MM-DD or null). Downstream code uses this as the \"order\" field in the output dictionary.",
+        "difficulty": "medium",
+        "rubric": [
+          "Output is valid JSON with exactly the four required keys.",
+          "Values are either null or directly extracted from the ticket text (no hallucination).",
+          "order_date format is YYYY-MM-DD or null; quantity is integer or null."
+        ],
+        "risks": [
+          "JSON response format (response_format={\"type\": \"json_object\"}) may not be supported by all models.",
+          "Model might hallucinate values not present in the text.",
+          "Model might include extra keys or omit required keys."
+        ],
+        "effective_model": "gpt-4o",
+        "related_files": [
+          "helpdesk/ai.py",
+          "helpdesk/pipeline.py",
+          "requirements.txt"
+        ],
+        "eval_entrypoint": "helpdesk/ai.py:extract_order"
+      },
+      "checks": [
+        "Every fact, number, label and extracted value is correct for this input (the reference is a hint from a strong model, but it can be wrong)",
+        "Output is valid JSON with exactly the four required keys.",
+        "Values are either null or directly extracted from the ticket text (no hallucination).",
+        "order_date format is YYYY-MM-DD or null; quantity is integer or null."
+      ],
+      "n_inputs": 12,
+      "inputs": [
+        {
+          "text": "Customer reports Order #A9B2C3D4 received today (2024-09-15); ordered 3 packs of Blue Socks."
+        },
+        {
+          "text": "I bought a single Wireless Mouse on August 5, 2024, order ID is 789012."
+        },
+        {
+          "text": "Need help with my purchase \u2013 I think it was around two weeks ago, got a Red Backpack, but I can't find the order number."
+        },
+        {
+          "text": "Ticket: Refund request for order 556677, product: Stainless Steel Water Bottle, quantity 1, date 2024-07-01."
+        },
+        {
+          "text": "Hello, I placed an order for 2\u00d7 Gaming Keyboard (model GK-2024) on 04/22/2024, order reference: ORD-2024-0422."
+        },
+        {
+          "text": "The item arrived damaged; it's a Ceramic Mug, ordered on 2024-06-10, qty 1, order ID unknown."
+        },
+        {
+          "text": "Order ID: ABC123\nProduct: SuperWidget\nQuantity: 2\nDate: 2024-08-15"
+        },
+        {
+          "text": "Customer wants to return a BlueGadget bought on 2024-07-01. Quantity was 1."
+        },
+        {
+          "text": "Ticket #98765 mentions order IDs XYZ999 and ABC111. Product: NanoKit. Qty: 3."
+        },
+        {
+          "text": "I purchased item 'DeluxeHeadphones' on March 3, 2024. I ordered 5 units."
+        },
+        {
+          "text": "Order placed: 2024-06-20. Item: EcoBag. Amount: two."
+        },
+        {
+          "text": "Refund request for damaged shipment. Order ID: REFUND42. Product: None. Quantity: 0. Date: 2024-05-10. Shipping fee $7.99 applies."
+        }
+      ],
+      "prompts": [
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Customer reports Order #A9B2C3D4 received today (2024-09-15); ordered 3 packs of Blue Socks."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "I bought a single Wireless Mouse on August 5, 2024, order ID is 789012."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Need help with my purchase \u2013 I think it was around two weeks ago, got a Red Backpack, but I can't find the order number."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Ticket: Refund request for order 556677, product: Stainless Steel Water Bottle, quantity 1, date 2024-07-01."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Hello, I placed an order for 2\u00d7 Gaming Keyboard (model GK-2024) on 04/22/2024, order reference: ORD-2024-0422."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "The item arrived damaged; it's a Ceramic Mug, ordered on 2024-06-10, qty 1, order ID unknown."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Order ID: ABC123\nProduct: SuperWidget\nQuantity: 2\nDate: 2024-08-15"
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Customer wants to return a BlueGadget bought on 2024-07-01. Quantity was 1."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Ticket #98765 mentions order IDs XYZ999 and ABC111. Product: NanoKit. Qty: 3."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "I purchased item 'DeluxeHeadphones' on March 3, 2024. I ordered 5 units."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Order placed: 2024-06-20. Item: EcoBag. Amount: two."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Extract order details from the ticket. Return JSON with keys order_id (string or null), product (string or null), quantity (integer or null), order_date (YYYY-MM-DD or null). Do not guess values that are not in the text."
+          },
+          {
+            "role": "user",
+            "content": "Refund request for damaged shipment. Order ID: REFUND42. Product: None. Quantity: 0. Date: 2024-05-10. Shipping fee $7.99 applies."
+          }
+        ]
+      ],
+      "configs": [
+        {
+          "config": "Nano 30B fast",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 8.33,
+          "min_score": 5.0,
+          "avg_in": 100,
+          "avg_out": 47,
+          "max_out": 62,
+          "cost_per_1k": 0.0172,
+          "avg_seconds": 0.8,
+          "passes": false
+        },
+        {
+          "config": "Nano 30B think",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 9.17,
+          "min_score": 5.0,
+          "avg_in": 100,
+          "avg_out": 272,
+          "max_out": 724,
+          "cost_per_1k": 0.07134,
+          "avg_seconds": 1.88,
+          "passes": false
+        },
+        {
+          "config": "Super 120B fast",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 9.38,
+          "min_score": 5.0,
+          "avg_in": 100,
+          "avg_out": 40,
+          "max_out": 56,
+          "cost_per_1k": 0.06567,
+          "avg_seconds": 0.74,
+          "passes": true
+        },
+        {
+          "config": "Super 120B think",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 9.58,
+          "min_score": 7.5,
+          "avg_in": 100,
+          "avg_out": 178,
+          "max_out": 307,
+          "cost_per_1k": 0.19025,
+          "avg_seconds": 1.64,
+          "passes": true
+        },
+        {
+          "config": "Ultra 550B fast",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 9.79,
+          "min_score": 7.5,
+          "avg_in": 100,
+          "avg_out": 44,
+          "max_out": 62,
+          "cost_per_1k": 0.23292,
+          "avg_seconds": 0.62,
+          "passes": true
+        },
+        {
+          "config": "Ultra 550B think",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 100,
+          "avg_out": 310,
+          "max_out": 711,
+          "cost_per_1k": 1.03117,
+          "avg_seconds": 1.57,
+          "passes": true
+        }
+      ],
+      "chosen": {
+        "config": "Super 120B fast",
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "thinking": false,
+        "functional": 1.0,
+        "mean_score": 9.38,
+        "min_score": 5.0,
+        "avg_in": 100,
+        "avg_out": 40,
+        "max_out": 56,
+        "cost_per_1k": 0.06567,
+        "avg_seconds": 0.74,
+        "passes": true
+      },
+      "best_score": 10.0,
+      "threshold": 9.25,
+      "recommended_max_tokens": 512,
+      "reference_out_tokens": 310.4166666666667,
+      "ultra_fast_out_tokens": 44.333333333333336,
+      "avg_in_tokens": 99.91666666666667,
+      "failures": [
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "text": "Customer reports Order #A9B2C3D4 received today (2024-09-15); ordered 3 packs of Blue Socks."
+          },
+          "value": {
+            "order_id": "A9B2C3D4",
+            "product": "Blue Socks",
+            "quantity": 3,
+            "order_date": "2024-09-15"
+          },
+          "score": 5.0,
+          "reason": "Check 0 failed because the extracted order_date '2024-09-15' is labeled as the receipt date ('received today') in the text, not the order date; Check 2 failed because the order_date value '2024-09-15' was not directly extractable as an order date from the ticket text."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "text": "Need help with my purchase \u2013 I think it was around two weeks ago, got a Red Backpack, but I can't find the order number."
+          },
+          "value": {
+            "order_id": null,
+            "product": "Red Backpack",
+            "quantity": null,
+            "order_date": "2025-10-25"
+          },
+          "score": 5.0,
+          "reason": "The model hallucinated a specific order_date (2025-10-25) that was not present in the ticket text, which only mentioned 'around two weeks ago'."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "text": "Customer wants to return a BlueGadget bought on 2024-07-01. Quantity was 1."
+          },
+          "value": {
+            "order_id": "null",
+            "product": "BlueGadget",
+            "quantity": 1,
+            "order_date": "2024-07-01"
+          },
+          "score": 7.5,
+          "reason": "order_id is the string \"null\" instead of the JSON null value."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "text": "Ticket #98765 mentions order IDs XYZ999 and ABC111. Product: NanoKit. Qty: 3."
+          },
+          "value": {
+            "order_id": "XYZ999",
+            "product": "NanoKit",
+            "quantity": 3,
+            "order_date": null
+          },
+          "score": 7.5,
+          "reason": "Check 0 failed: output misses the second order ID 'ABC111' present in the ticket text."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "text": "Refund request for damaged shipment. Order ID: REFUND42. Product: None. Quantity: 0. Date: 2024-05-10. Shipping fee $7.99 applies."
+          },
+          "value": {
+            "order_id": "REFUND42",
+            "product": "None",
+            "quantity": 0,
+            "order_date": "2024-05-10"
+          },
+          "score": 5.0,
+          "reason": "The product field incorrectly extracts the literal string 'None' instead of a null value when the text states 'Product: None', and the check for all facts being correct fails because 'None' as a string does not match the reference's null value for a missing product."
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "text": "Customer reports Order #A9B2C3D4 received today (2024-09-15); ordered 3 packs of Blue Socks."
+          },
+          "value": {
+            "order_id": "#A9B2C3D4",
+            "product": "Blue Socks",
+            "quantity": 3,
+            "order_date": "2024-09-15"
+          },
+          "score": 5.0,
+          "reason": "Check 0 failed: order_id includes '#' not present in the reference format and order_date '2024-09-15' is the receipt date, not the order date; Check 2 failed: order_date extracted as receipt date rather than order date which is not stated in text."
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "text": "Refund request for damaged shipment. Order ID: REFUND42. Product: None. Quantity: 0. Date: 2024-05-10. Shipping fee $7.99 applies."
+          },
+          "value": {
+            "order_id": "REFUND42",
+            "product": "None",
+            "quantity": 0,
+            "order_date": "2024-05-10"
+          },
+          "score": 5.0,
+          "reason": "The product field incorrectly extracts the literal string 'None' instead of a null value when the text states 'Product: None', and the check for all facts being correct fails because 'None' as a string does not match the reference's null value for a missing product."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "text": "Customer reports Order #A9B2C3D4 received today (2024-09-15); ordered 3 packs of Blue Socks."
+          },
+          "value": {
+            "order_id": "A9B2C3D4",
+            "product": "Blue Socks",
+            "quantity": 3,
+            "order_date": "2024-09-15"
+          },
+          "score": 5.0,
+          "reason": "Check 0 failed because the extracted order_date '2024-09-15' is labeled as the receipt date ('received today') in the text, not the order date; Check 2 failed because the order_date value '2024-09-15' was not directly extractable as an order date from the ticket text."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "text": "Ticket #98765 mentions order IDs XYZ999 and ABC111. Product: NanoKit. Qty: 3."
+          },
+          "value": {
+            "order_id": "XYZ999",
+            "product": "NanoKit",
+            "quantity": 3,
+            "order_date": null
+          },
+          "score": 7.5,
+          "reason": "Check 0 failed: output misses the second order ID 'ABC111' present in the ticket text."
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "text": "Hello, I placed an order for 2\u00d7 Gaming Keyboard (model GK-2024) on 04/22/2024, order reference: ORD-2024-0422."
+          },
+          "value": {
+            "order_id": "ORD-2024-0422",
+            "product": "Gaming Keyboard",
+            "quantity": 2,
+            "order_date": "2024-04-22"
+          },
+          "score": 7.5,
+          "reason": "The product value 'Gaming Keyboard' omits the model specification '(model GK-2024)' present in the ticket text, making the extraction incomplete."
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "text": "Ticket #98765 mentions order IDs XYZ999 and ABC111. Product: NanoKit. Qty: 3."
+          },
+          "value": {
+            "order_id": null,
+            "product": "NanoKit",
+            "quantity": 3,
+            "order_date": null
+          },
+          "score": 7.5,
+          "reason": "Check 0 failed: order_id should be 'XYZ999, ABC111' as explicitly stated in the ticket text, not null."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "text": "Ticket #98765 mentions order IDs XYZ999 and ABC111. Product: NanoKit. Qty: 3."
+          },
+          "value": {
+            "order_id": "XYZ999",
+            "product": "NanoKit",
+            "quantity": 3,
+            "order_date": null
+          },
+          "score": 7.5,
+          "reason": "Check 0 failed: output misses the second order ID 'ABC111' present in the ticket text."
+        }
+      ],
+      "samples": [
+        {
+          "input": {
+            "text": "Customer reports Order #A9B2C3D4 received today (2024-09-15); ordered 3 packs of Blue Socks."
+          },
+          "value": {
+            "order_id": "A9B2C3D4",
+            "product": "Blue Socks",
+            "quantity": 3,
+            "order_date": "2024-09-15"
+          },
+          "score": 5.0,
+          "reason": "Check 0 failed because the extracted order_date '2024-09-15' is labeled as the receipt date ('received today') in the text, not the order date; Check 2 failed because the order_date value '2024-09-15' was not directly extractable as an order date from the ticket text."
+        },
+        {
+          "input": {
+            "text": "I bought a single Wireless Mouse on August 5, 2024, order ID is 789012."
+          },
+          "value": {
+            "order_id": "789012",
+            "product": "Wireless Mouse",
+            "quantity": 1,
+            "order_date": "2024-08-05"
+          },
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "Need help with my purchase \u2013 I think it was around two weeks ago, got a Red Backpack, but I can't find the order number."
+          },
+          "value": {
+            "order_id": null,
+            "product": "Red Backpack",
+            "quantity": null,
+            "order_date": null
+          },
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "Ticket: Refund request for order 556677, product: Stainless Steel Water Bottle, quantity 1, date 2024-07-01."
+          },
+          "value": {
+            "order_id": "556677",
+            "product": "Stainless Steel Water Bottle",
+            "quantity": 1,
+            "order_date": "2024-07-01"
+          },
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "Hello, I placed an order for 2\u00d7 Gaming Keyboard (model GK-2024) on 04/22/2024, order reference: ORD-2024-0422."
+          },
+          "value": {
+            "order_id": "ORD-2024-0422",
+            "product": "Gaming Keyboard (model GK-2024)",
+            "quantity": 2,
+            "order_date": "2024-04-22"
+          },
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "text": "The item arrived damaged; it's a Ceramic Mug, ordered on 2024-06-10, qty 1, order ID unknown."
+          },
+          "value": {
+            "order_id": null,
+            "product": "Ceramic Mug",
+            "quantity": 1,
+            "order_date": "2024-06-10"
+          },
+          "score": 10.0,
+          "reason": "all checks passed"
+        }
+      ],
+      "adaptive": true,
+      "entry": {
+        "file": "helpdesk/ai.py",
+        "function": "extract_order"
+      }
+    },
+    {
+      "site": "helpdesk/ai.py:refund_amount",
+      "function": "refund_amount",
+      "file": "helpdesk/ai.py",
+      "source_model": "o3-mini",
+      "provider": "openai",
+      "plan": {
+        "purpose": "Apply the refund policy to a ticket and compute the refund amount in dollars.",
+        "output_contract": "Returns a float rounded to two decimal places (e.g., 12.50). Downstream code uses this as the \"refund\" field in the output dictionary only when queue is \"refund\".",
+        "difficulty": "high",
+        "rubric": [
+          "Output is a valid numeric string (may include $ or commas) that parses to a float.",
+          "Amount matches policy rules: full refund within 30 days, 50% between 31-60 days, zero after 60 days, shipping fee refunded only if item arrived damaged.",
+          "Response contains only the number (no extra text)."
+        ],
+        "risks": [
+          "reasoning_effort parameter is specific to OpenAI's o3 models; other providers may not support it.",
+          "Model might output explanatory text instead of just the number, breaking the parsing logic.",
+          "Policy and ticket text length could exceed token limits for some models."
+        ],
+        "effective_model": "o3-mini",
+        "related_files": [
+          "helpdesk/ai.py",
+          "helpdesk/pipeline.py (defines REFUND_POLICY)",
+          "requirements.txt"
+        ],
+        "eval_entrypoint": "helpdesk/ai.py:refund_amount"
+      },
+      "checks": [
+        "Every fact, number, label and extracted value is correct for this input (the reference is a hint from a strong model, but it can be wrong)",
+        "Output is a valid numeric string (may include $ or commas) that parses to a float.",
+        "Amount matches policy rules: full refund within 30 days, 50% between 31-60 days, zero after 60 days, shipping fee refunded only if item arrived damaged.",
+        "Response contains only the number (no extra text)."
+      ],
+      "n_inputs": 6,
+      "inputs": [
+        {
+          "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+          "ticket": "Order #12345 placed on 2024-09-20. Item price $45.00. Return requested today 2024-09-30. Item not damaged."
+        },
+        {
+          "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+          "ticket": "Order #67890 placed on 2024-08-10. Item price $80.00. Return requested on 2024-09-24."
+        },
+        {
+          "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+          "ticket": "Order #54321 placed on 2024-07-01. Item price $120.00. Return requested on 2024-09-15."
+        },
+        {
+          "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+          "ticket": "Order #22222 placed on 2024-09-25. Item price $30.00. Item arrived damaged. Return requested today 2024-09-30."
+        },
+        {
+          "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+          "ticket": "Order #99999. Item price $50.00. Return requested. Item not damaged."
+        },
+        {
+          "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+          "ticket": "Order #11111 placed on 02/03/2024. Item price $20.00. Return requested on 03/04/2024."
+        }
+      ],
+      "prompts": [
+        [
+          {
+            "role": "user",
+            "content": "Refund policy:\n- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.\n\nTicket:\nOrder #12345 placed on 2024-09-20. Item price $45.00. Return requested today 2024-09-30. Item not damaged.\n\nApply the policy exactly. Reply with only the refund amount in dollars as a number, e.g. 12.50"
+          }
+        ],
+        [
+          {
+            "role": "user",
+            "content": "Refund policy:\n- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.\n\nTicket:\nOrder #67890 placed on 2024-08-10. Item price $80.00. Return requested on 2024-09-24.\n\nApply the policy exactly. Reply with only the refund amount in dollars as a number, e.g. 12.50"
+          }
+        ],
+        [
+          {
+            "role": "user",
+            "content": "Refund policy:\n- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.\n\nTicket:\nOrder #54321 placed on 2024-07-01. Item price $120.00. Return requested on 2024-09-15.\n\nApply the policy exactly. Reply with only the refund amount in dollars as a number, e.g. 12.50"
+          }
+        ],
+        [
+          {
+            "role": "user",
+            "content": "Refund policy:\n- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.\n\nTicket:\nOrder #22222 placed on 2024-09-25. Item price $30.00. Item arrived damaged. Return requested today 2024-09-30.\n\nApply the policy exactly. Reply with only the refund amount in dollars as a number, e.g. 12.50"
+          }
+        ],
+        [
+          {
+            "role": "user",
+            "content": "Refund policy:\n- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.\n\nTicket:\nOrder #99999. Item price $50.00. Return requested. Item not damaged.\n\nApply the policy exactly. Reply with only the refund amount in dollars as a number, e.g. 12.50"
+          }
+        ],
+        [
+          {
+            "role": "user",
+            "content": "Refund policy:\n- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.\n\nTicket:\nOrder #11111 placed on 02/03/2024. Item price $20.00. Return requested on 03/04/2024.\n\nApply the policy exactly. Reply with only the refund amount in dollars as a number, e.g. 12.50"
+          }
+        ]
+      ],
+      "configs": [
+        {
+          "config": "Nano 30B fast",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 4.58,
+          "min_score": 2.5,
+          "avg_in": 163,
+          "avg_out": 5,
+          "max_out": 6,
+          "cost_per_1k": 0.01098,
+          "avg_seconds": 1.19,
+          "passes": false
+        },
+        {
+          "config": "Nano 30B think",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 9.17,
+          "min_score": 5.0,
+          "avg_in": 163,
+          "avg_out": 1127,
+          "max_out": 5154,
+          "cost_per_1k": 0.28022,
+          "avg_seconds": 6.96,
+          "passes": true
+        },
+        {
+          "config": "Super 120B fast",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": false,
+          "functional": 0.333,
+          "mean_score": 3.33,
+          "min_score": 0.0,
+          "avg_in": 163,
+          "avg_out": 338,
+          "max_out": 825,
+          "cost_per_1k": 0.35295,
+          "avg_seconds": 2.41,
+          "passes": false
+        },
+        {
+          "config": "Super 120B think",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 8.75,
+          "min_score": 2.5,
+          "avg_in": 163,
+          "avg_out": 326,
+          "max_out": 641,
+          "cost_per_1k": 0.3423,
+          "avg_seconds": 2.2,
+          "passes": false
+        },
+        {
+          "config": "Ultra 550B fast",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": false,
+          "functional": 0.833,
+          "mean_score": 6.25,
+          "min_score": 0.0,
+          "avg_in": 163,
+          "avg_out": 45,
+          "max_out": 244,
+          "cost_per_1k": 0.2975,
+          "avg_seconds": 0.68,
+          "passes": false
+        },
+        {
+          "config": "Ultra 550B think",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 9.17,
+          "min_score": 5.0,
+          "avg_in": 163,
+          "avg_out": 666,
+          "max_out": 1601,
+          "cost_per_1k": 2.161,
+          "avg_seconds": 3.42,
+          "passes": true
+        }
+      ],
+      "chosen": {
+        "config": "Nano 30B think",
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "thinking": true,
+        "functional": 1.0,
+        "mean_score": 9.17,
+        "min_score": 5.0,
+        "avg_in": 163,
+        "avg_out": 1127,
+        "max_out": 5154,
+        "cost_per_1k": 0.28022,
+        "avg_seconds": 6.96,
+        "passes": true
+      },
+      "best_score": 9.166666666666666,
+      "threshold": 8.416666666666666,
+      "recommended_max_tokens": 15462,
+      "reference_out_tokens": 666.0,
+      "ultra_fast_out_tokens": 44.833333333333336,
+      "avg_in_tokens": 163.0,
+      "failures": [
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #12345 placed on 2024-09-20. Item price $45.00. Return requested today 2024-09-30. Item not damaged."
+          },
+          "value": 50.0,
+          "score": 2.5,
+          "reason": "The output of 50.0 is incorrect: the return is within 30 days (10 days after order), so a full item price refund of $45.00 applies, and shipping is not refunded because the item was not damaged."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #67890 placed on 2024-08-10. Item price $80.00. Return requested on 2024-09-24."
+          },
+          "value": 10.0,
+          "score": 5.0,
+          "reason": "The order date is 2024-08-10 and return date is 2024-09-24, which is 45 days later (31-60 day window), so the refund should be 50% of $80.00 = $40.00, not $10.00."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #54321 placed on 2024-07-01. Item price $120.00. Return requested on 2024-09-15."
+          },
+          "value": 7.5,
+          "score": 7.5,
+          "reason": "The return was requested 76 days after the order date, which exceeds the 60-day policy limit for any refund, so the correct refund amount is $0.00, not $7.50."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #22222 placed on 2024-09-25. Item price $30.00. Item arrived damaged. Return requested today 2024-09-30."
+          },
+          "value": 15.99,
+          "score": 5.0,
+          "reason": "Check 0 and 2 failed: the item was returned 5 days after the order date (within 30 days), so a full refund of $30.00 plus the $7.99 shipping fee (item arrived damaged) equals $37.99, not $15.99."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #99999. Item price $50.00. Return requested. Item not damaged."
+          },
+          "value": 0.0,
+          "score": 2.5,
+          "reason": "The output 0.0 violates the policy: the ticket lacks an order/return date, so the refund cannot be determined as zero; the reference 50.0 suggests a full refund within 30 days was assumed, and shipping fees are not refunded because the item was not damaged."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #11111 placed on 02/03/2024. Item price $20.00. Return requested on 03/04/2024."
+          },
+          "value": 15.0,
+          "score": 5.0,
+          "reason": "The return was requested 30 days after the order date (02/03/2024 to 03/04/2024), qualifying for a full refund of $20.00 per the policy, not 50% ($15.00)."
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #99999. Item price $50.00. Return requested. Item not damaged."
+          },
+          "value": 50.0,
+          "score": 5.0,
+          "reason": "The input does not specify how many days have passed since the order date, making it impossible to determine which refund tier applies; assuming a full refund is not defensible without that information."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #67890 placed on 2024-08-10. Item price $80.00. Return requested on 2024-09-24."
+          },
+          "value": "ValueError: could not convert string to float: 'We'",
+          "score": 0.0,
+          "reason": "app rejected output: ValueError: could not convert string to float: 'We'"
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #54321 placed on 2024-07-01. Item price $120.00. Return requested on 2024-09-15."
+          },
+          "value": "ValueError: could not convert string to float: 'We'",
+          "score": 0.0,
+          "reason": "app rejected output: ValueError: could not convert string to float: 'We'"
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #99999. Item price $50.00. Return requested. Item not damaged."
+          },
+          "value": "ValueError: could not convert string to float: 'We'",
+          "score": 0.0,
+          "reason": "app rejected output: ValueError: could not convert string to float: 'We'"
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #11111 placed on 02/03/2024. Item price $20.00. Return requested on 03/04/2024."
+          },
+          "value": "ValueError: could not convert string to float: 'The'",
+          "score": 0.0,
+          "reason": "app rejected output: ValueError: could not convert string to float: 'The'"
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #99999. Item price $50.00. Return requested. Item not damaged."
+          },
+          "value": 0.0,
+          "score": 2.5,
+          "reason": "The output 0.0 violates the policy: the ticket lacks an order/return date, so the refund cannot be determined as zero; the reference 50.0 suggests a full refund within 30 days was assumed, and shipping fees are not refunded because the item was not damaged."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #12345 placed on 2024-09-20. Item price $45.00. Return requested today 2024-09-30. Item not damaged."
+          },
+          "value": "ValueError: could not convert string to float: 'Thinking'",
+          "score": 0.0,
+          "reason": "app rejected output: ValueError: could not convert string to float: 'Thinking'"
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #99999. Item price $50.00. Return requested. Item not damaged."
+          },
+          "value": 0.0,
+          "score": 2.5,
+          "reason": "The output 0.0 violates the policy: the ticket lacks an order/return date, so the refund cannot be determined as zero; the reference 50.0 suggests a full refund within 30 days was assumed, and shipping fees are not refunded because the item was not damaged."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #11111 placed on 02/03/2024. Item price $20.00. Return requested on 03/04/2024."
+          },
+          "value": 10.0,
+          "score": 5.0,
+          "reason": "The item was returned 31 days after the order date (02/03/2024 to 03/04/2024), which falls in the 31-60 day window qualifying for a 50% refund ($10.00), not a full refund."
+        },
+        {
+          "config": "Ultra 550B think",
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #99999. Item price $50.00. Return requested. Item not damaged."
+          },
+          "value": 50.0,
+          "score": 5.0,
+          "reason": "The input does not specify how many days have passed since the order date, making it impossible to determine which refund tier applies; assuming a full refund is not defensible without that information."
+        }
+      ],
+      "samples": [
+        {
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #12345 placed on 2024-09-20. Item price $45.00. Return requested today 2024-09-30. Item not damaged."
+          },
+          "value": 45.0,
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #67890 placed on 2024-08-10. Item price $80.00. Return requested on 2024-09-24."
+          },
+          "value": 40.0,
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #54321 placed on 2024-07-01. Item price $120.00. Return requested on 2024-09-15."
+          },
+          "value": 0.0,
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #22222 placed on 2024-09-25. Item price $30.00. Item arrived damaged. Return requested today 2024-09-30."
+          },
+          "value": 37.99,
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #99999. Item price $50.00. Return requested. Item not damaged."
+          },
+          "value": 50.0,
+          "score": 5.0,
+          "reason": "The input does not specify how many days have passed since the order date, making it impossible to determine which refund tier applies; assuming a full refund is not defensible without that information."
+        },
+        {
+          "input": {
+            "policy": "- Items returned within 30 days of the order date get a full refund of the item price.\n- Items returned between 31 and 60 days get 50% of the item price.\n- After 60 days: no refund.\n- Shipping fees ($7.99) are refunded only if the item arrived damaged.",
+            "ticket": "Order #11111 placed on 02/03/2024. Item price $20.00. Return requested on 03/04/2024."
+          },
+          "value": 20.0,
+          "score": 10.0,
+          "reason": "all checks passed"
+        }
+      ],
+      "entry": {
+        "file": "helpdesk/ai.py",
+        "function": "refund_amount"
+      }
+    },
+    {
+      "site": "helpdesk/ai.py:summarize_thread",
+      "function": "summarize_thread",
+      "file": "helpdesk/ai.py",
+      "source_model": "gpt-4o",
+      "provider": "openai",
+      "plan": {
+        "purpose": "Create a concise two-sentence handoff summary of a long ticket thread for the next agent.",
+        "output_contract": "Returns a string of at most two sentences. Downstream code uses this as the \"summary\" field in the output dictionary and passes it to draft_reply.",
+        "difficulty": "low",
+        "rubric": [
+          "Output is at most two sentences.",
+          "Includes the customer's problem, what was already tried, and what is still open.",
+          "Length is within the max_tokens limit (200 tokens)."
+        ],
+        "risks": [
+          "Model might produce more than two sentences.",
+          "Model might omit one of the required elements (problem, tried, open).",
+          "Long threads could exceed context window if not truncated."
+        ],
+        "effective_model": "gpt-4o",
+        "related_files": [
+          "helpdesk/ai.py",
+          "helpdesk/pipeline.py",
+          "requirements.txt"
+        ],
+        "eval_entrypoint": "helpdesk/ai.py:summarize_thread"
+      },
+      "checks": [
+        "Every fact, number, label and extracted value is correct for this input (the reference is a hint from a strong model, but it can be wrong)",
+        "Output is at most two sentences.",
+        "Includes the customer's problem, what was already tried, and what is still open.",
+        "Length is within the max_tokens limit (200 tokens)."
+      ],
+      "n_inputs": 10,
+      "inputs": [
+        {
+          "messages": [
+            "Customer received a broken screen on the tablet ordered on 2024-08-01.",
+            "Agent asked for photos of the damage.",
+            "Customer uploaded images showing cracked LCD.",
+            "Agent confirmed warranty covers accidental damage and offered replacement.",
+            "Customer agreed and requested shipping label."
+          ]
+        },
+        {
+          "messages": [
+            "Hi, I just placed order #112233 and want to know when it will ship.",
+            "Your order is scheduled to ship tomorrow via standard delivery.",
+            "Thanks!"
+          ]
+        },
+        {
+          "messages": [
+            "I want to return the blender bought on 2024-06-10 because it\u2019s too loud.",
+            "According to our policy, returns within 30 days get full refund; today is 2024-07-25, so you\u2019re within window.",
+            "Please send it back with the prepaid label attached."
+          ]
+        },
+        {
+          "messages": [
+            "First message: I love the product!",
+            "Second: Actually, the color is not as shown.",
+            "Third: Can I exchange it for a different shade?",
+            "Fourth: We allow exchanges within 14 days, please send back the item.",
+            "Fifth: I shipped it back yesterday, tracking #987654321.",
+            "Sixth: Received, processing exchange now.",
+            "Seventh: Will notify when shipped."
+          ]
+        },
+        {
+          "messages": [
+            "Customer: I received my headphones yesterday but they don't power on.",
+            "Agent: Have you tried charging them for at least 30 minutes?",
+            "Customer: Yes, charged overnight, still no light.",
+            "Agent: Please try a different USB cable and port.",
+            "Customer: Tried another cable, same issue."
+          ]
+        },
+        {
+          "messages": [
+            "User: Order #12345 arrived with a cracked screen.",
+            "Agent: Sorry to hear that. Can you share photos of the damage?",
+            "User: Attached images show the crack across the top right corner.",
+            "Agent: We'll arrange a replacement shipping today."
+          ]
+        },
+        {
+          "messages": [
+            "Buyer: The sweater I ordered is two sizes too large.",
+            "Agent: Would you like to exchange for a smaller size or return for refund?",
+            "Buyer: I'd prefer an exchange to size medium.",
+            "Agent: Exchange processed, new item ships tomorrow."
+          ]
+        },
+        {
+          "messages": [
+            "Customer: I was charged twice for subscription renewal.",
+            "Agent: Let me check your account... I see a duplicate charge on 2024-08-01.",
+            "Customer: Can you reverse the extra charge?",
+            "Agent: Refund initiated, should appear in 3-5 business days."
+          ]
+        },
+        {
+          "messages": []
+        },
+        {
+          "messages": [
+            "User: I need help with my invoice.",
+            "Agent: Sure, what's the issue?",
+            "User: The total shows $0.00 but I was charged $49.99 on my card.",
+            "Agent: Let me look up the transaction... It appears a promotional discount was applied incorrectly.",
+            "User: Can you re\u2011issue the correct invoice?",
+            "Agent: Corrected invoice sent to your email."
+          ]
+        }
+      ],
+      "prompts": [
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- Customer received a broken screen on the tablet ordered on 2024-08-01.\n- Agent asked for photos of the damage.\n- Customer uploaded images showing cracked LCD.\n- Agent confirmed warranty covers accidental damage and offered replacement.\n- Customer agreed and requested shipping label."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- Hi, I just placed order #112233 and want to know when it will ship.\n- Your order is scheduled to ship tomorrow via standard delivery.\n- Thanks!"
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- I want to return the blender bought on 2024-06-10 because it\u2019s too loud.\n- According to our policy, returns within 30 days get full refund; today is 2024-07-25, so you\u2019re within window.\n- Please send it back with the prepaid label attached."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- First message: I love the product!\n- Second: Actually, the color is not as shown.\n- Third: Can I exchange it for a different shade?\n- Fourth: We allow exchanges within 14 days, please send back the item.\n- Fifth: I shipped it back yesterday, tracking #987654321.\n- Sixth: Received, processing exchange now.\n- Seventh: Will notify when shipped."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- Customer: I received my headphones yesterday but they don't power on.\n- Agent: Have you tried charging them for at least 30 minutes?\n- Customer: Yes, charged overnight, still no light.\n- Agent: Please try a different USB cable and port.\n- Customer: Tried another cable, same issue."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- User: Order #12345 arrived with a cracked screen.\n- Agent: Sorry to hear that. Can you share photos of the damage?\n- User: Attached images show the crack across the top right corner.\n- Agent: We'll arrange a replacement shipping today."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- Buyer: The sweater I ordered is two sizes too large.\n- Agent: Would you like to exchange for a smaller size or return for refund?\n- Buyer: I'd prefer an exchange to size medium.\n- Agent: Exchange processed, new item ships tomorrow."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- Customer: I was charged twice for subscription renewal.\n- Agent: Let me check your account... I see a duplicate charge on 2024-08-01.\n- Customer: Can you reverse the extra charge?\n- Agent: Refund initiated, should appear in 3-5 business days."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": ""
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Summarize this support thread in at most two sentences for the next agent. Include the customer's problem, what was already tried, and what is still open."
+          },
+          {
+            "role": "user",
+            "content": "- User: I need help with my invoice.\n- Agent: Sure, what's the issue?\n- User: The total shows $0.00 but I was charged $49.99 on my card.\n- Agent: Let me look up the transaction... It appears a promotional discount was applied incorrectly.\n- User: Can you re\u2011issue the correct invoice?\n- Agent: Corrected invoice sent to your email."
+          }
+        ]
+      ],
+      "configs": [
+        {
+          "config": "Nano 30B fast",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 9.25,
+          "min_score": 7.5,
+          "avg_in": 108,
+          "avg_out": 68,
+          "max_out": 102,
+          "cost_per_1k": 0.0227,
+          "avg_seconds": 1.45,
+          "passes": true
+        },
+        {
+          "config": "Nano 30B think",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 108,
+          "avg_out": 339,
+          "max_out": 895,
+          "cost_per_1k": 0.08776,
+          "avg_seconds": 2.05,
+          "passes": true
+        },
+        {
+          "config": "Super 120B fast",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 9.5,
+          "min_score": 7.5,
+          "avg_in": 108,
+          "avg_out": 68,
+          "max_out": 106,
+          "cost_per_1k": 0.09378,
+          "avg_seconds": 0.98,
+          "passes": true
+        },
+        {
+          "config": "Super 120B think",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 9.0,
+          "min_score": 2.5,
+          "avg_in": 108,
+          "avg_out": 152,
+          "max_out": 223,
+          "cost_per_1k": 0.16965,
+          "avg_seconds": 1.51,
+          "passes": false
+        },
+        {
+          "config": "Ultra 550B fast",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 9.75,
+          "min_score": 7.5,
+          "avg_in": 108,
+          "avg_out": 52,
+          "max_out": 98,
+          "cost_per_1k": 0.2637,
+          "avg_seconds": 0.75,
+          "passes": true
+        },
+        {
+          "config": "Ultra 550B think",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 9.25,
+          "min_score": 5.0,
+          "avg_in": 108,
+          "avg_out": 186,
+          "max_out": 496,
+          "cost_per_1k": 0.6672,
+          "avg_seconds": 1.19,
+          "passes": true
+        }
+      ],
+      "chosen": {
+        "config": "Nano 30B fast",
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "thinking": false,
+        "functional": 1.0,
+        "mean_score": 9.25,
+        "min_score": 7.5,
+        "avg_in": 108,
+        "avg_out": 68,
+        "max_out": 102,
+        "cost_per_1k": 0.0227,
+        "avg_seconds": 1.45,
+        "passes": true
+      },
+      "best_score": 10.0,
+      "threshold": 9.25,
+      "recommended_max_tokens": 512,
+      "reference_out_tokens": 186.3,
+      "ultra_fast_out_tokens": 51.8,
+      "avg_in_tokens": 108.3,
+      "failures": [
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "messages": [
+              "Hi, I just placed order #112233 and want to know when it will ship.",
+              "Your order is scheduled to ship tomorrow via standard delivery.",
+              "Thanks!"
+            ]
+          },
+          "value": "The customer wants to know when their order #112233 will ship; they\u2019ve been told it\u2019s scheduled to ship tomorrow via standard delivery, but they need confirmation of the exact shipping date and any tracking details. An open issue remains about when the shipment will actually occur and how they can track it.",
+          "score": 7.5,
+          "reason": "The summary claims an open issue about the exact shipping date and tracking details, but the customer appeared satisfied with the agent's confirmation that the order ships tomorrow and did not request further information."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "messages": [
+              "Buyer: The sweater I ordered is two sizes too large.",
+              "Agent: Would you like to exchange for a smaller size or return for refund?",
+              "Buyer: I'd prefer an exchange to size medium.",
+              "Agent: Exchange processed, new item ships tomorrow."
+            ]
+          },
+          "value": "The customer received a sweater that was two sizes too large and exchanged it for size medium. The exchange was processed and the new item will ship tomorrow, but the size change still needs confirmation.",
+          "score": 7.5,
+          "reason": "The summary incorrectly states that the size change still needs confirmation when the agent has already processed the exchange for a medium size."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "messages": [
+              "User: I need help with my invoice.",
+              "Agent: Sure, what's the issue?",
+              "User: The total shows $0.00 but I was charged $49.99 on my card.",
+              "Agent: Let me look up the transaction... It appears a promotional discount was applied incorrectly.",
+              "User: Can you re\u2011issue the correct invoice?",
+              "Agent: Corrected invoice sent to your email."
+            ]
+          },
+          "value": "The customer reports that an invoice mistakenly shows a $0.00 total while they were charged $49.99, and the agent identified a promotional discount error; the agent corrected the invoice and resent it, but the issue remains open until the user confirms receipt and verification.",
+          "score": 7.5,
+          "reason": "The summary incorrectly states the issue remains open; the thread shows the agent already sent a corrected invoice, indicating resolution."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "messages": [
+              "Customer received a broken screen on the tablet ordered on 2024-08-01.",
+              "Agent asked for photos of the damage.",
+              "Customer uploaded images showing cracked LCD.",
+              "Agent confirmed warranty covers accidental damage and offered replacement.",
+              "Customer agreed and requested shipping label."
+            ]
+          },
+          "value": "The customer reported receiving a tablet with a broken screen from an order placed on August 1, 2024, and provided photos confirming a cracked LCD display. The agent verified that the device\u2019s warranty includes coverage for accidental damage, approved a replacement, and the customer has accepted the solution but is now awaiting the shipping label to return the defective unit. The only outstanding action is issuing and sending the return shipping label.",
+          "score": 7.5,
+          "reason": "The output contains three sentences, violating the constraint of at most two sentences."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "messages": [
+              "First message: I love the product!",
+              "Second: Actually, the color is not as shown.",
+              "Third: Can I exchange it for a different shade?",
+              "Fourth: We allow exchanges within 14 days, please send back the item.",
+              "Fifth: I shipped it back yesterday, tracking #987654321.",
+              "Sixth: Received, processing exchange now.",
+              "Seventh: Will notify when shipped."
+            ]
+          },
+          "value": "The customer initially praised the product but later reported that the color did not match the description and requested an exchange for a different shade. The support team approved the exchange within the 14-day window, provided return instructions, confirmed receipt of the returned item (tracking #987654321), and stated they are processing the exchange and will notify the customer upon shipment. The exchange is currently in progress, awaiting shipment notification.",
+          "score": 7.5,
+          "reason": "The output contains three sentences, exceeding the maximum of two sentences required by the contract."
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "messages": []
+          },
+          "value": "I\u2019m unable to provide a summary without seeing the actual support thread. If you can share the relevant messages or key points from the conversation, I\u2019ll gladly condense them into a concise two\u2011sentence summary covering the customer\u2019s issue, what\u2019s been tried so far, and what remains unresolved.",
+          "score": 2.5,
+          "reason": "The output fails to summarize the provided thread (which was empty) and instead asks for the thread, violating the requirement to include the customer's problem, what was tried, and what remains open."
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "messages": [
+              "User: I need help with my invoice.",
+              "Agent: Sure, what's the issue?",
+              "User: The total shows $0.00 but I was charged $49.99 on my card.",
+              "Agent: Let me look up the transaction... It appears a promotional discount was applied incorrectly.",
+              "User: Can you re\u2011issue the correct invoice?",
+              "Agent: Corrected invoice sent to your email."
+            ]
+          },
+          "value": "The customer\u2019s invoice displayed a $0.00 total despite a $49.99 charge, which the agent traced to an incorrectly applied promotional discount and resolved by sending a corrected invoice via email. The only remaining step is for the customer to confirm receipt of the updated invoice or report any further discrepancies.",
+          "score": 7.5,
+          "reason": "The reference result states the issue is resolved, but the output claims a remaining step of customer confirmation, which is not supported by the conversation."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "messages": [
+              "User: I need help with my invoice.",
+              "Agent: Sure, what's the issue?",
+              "User: The total shows $0.00 but I was charged $49.99 on my card.",
+              "Agent: Let me look up the transaction... It appears a promotional discount was applied incorrectly.",
+              "User: Can you re\u2011issue the correct invoice?",
+              "Agent: Corrected invoice sent to your email."
+            ]
+          },
+          "value": "The customer was charged $49.99 while the invoice displayed $0.00 due to an incorrectly applied promotional discount. The agent identified the error and re-issued the corrected invoice via email.",
+          "score": 7.5,
+          "reason": "The summary states the corrected invoice was sent, which indicates resolution, but the prompt requires explicitly noting what is still open, and this was omitted."
+        },
+        {
+          "config": "Ultra 550B think",
+          "input": {
+            "messages": []
+          },
+          "value": "I'd be happy to summarize the support thread for you, but I don't see the actual thread content in your message. Could you please provide the support thread you'd like me to summarize?",
+          "score": 5.0,
+          "reason": "The output fails to summarize the thread, omitting the customer's problem, prior attempts, and open issues, and instead asks for the missing thread content."
+        },
+        {
+          "config": "Ultra 550B think",
+          "input": {
+            "messages": [
+              "User: I need help with my invoice.",
+              "Agent: Sure, what's the issue?",
+              "User: The total shows $0.00 but I was charged $49.99 on my card.",
+              "Agent: Let me look up the transaction... It appears a promotional discount was applied incorrectly.",
+              "User: Can you re\u2011issue the correct invoice?",
+              "Agent: Corrected invoice sent to your email."
+            ]
+          },
+          "value": "The customer was charged $49.99 but the invoice displayed $0.00 due to an incorrectly applied promotional discount; the agent identified the error and sent a corrected invoice, resolving the issue.",
+          "score": 7.5,
+          "reason": "The summary states the issue is resolved, but the thread does not confirm the customer has accepted or verified the corrected invoice, so it is unclear if anything remains open."
+        }
+      ],
+      "samples": [
+        {
+          "input": {
+            "messages": [
+              "Customer received a broken screen on the tablet ordered on 2024-08-01.",
+              "Agent asked for photos of the damage.",
+              "Customer uploaded images showing cracked LCD.",
+              "Agent confirmed warranty covers accidental damage and offered replacement.",
+              "Customer agreed and requested shipping label."
+            ]
+          },
+          "value": "The customer reported a cracked LCD screen on the tablet they ordered on 2024\u201108\u201101; they sent photos of the damage, and the agent confirmed that the warranty covers accidental damage and offered a replacement, which the customer accepted and asked for a shipping label, but the label has not yet been sent.  \n\nThe open item is to generate and provide the shipping label so the replacement can be shipped.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "messages": [
+              "Hi, I just placed order #112233 and want to know when it will ship.",
+              "Your order is scheduled to ship tomorrow via standard delivery.",
+              "Thanks!"
+            ]
+          },
+          "value": "The customer wants to know when their order #112233 will ship; they\u2019ve been told it\u2019s scheduled to ship tomorrow via standard delivery, but they need confirmation of the exact shipping date and any tracking details. An open issue remains about when the shipment will actually occur and how they can track it.",
+          "score": 7.5,
+          "reason": "The summary claims an open issue about the exact shipping date and tracking details, but the customer appeared satisfied with the agent's confirmation that the order ships tomorrow and did not request further information."
+        },
+        {
+          "input": {
+            "messages": [
+              "I want to return the blender bought on 2024-06-10 because it\u2019s too loud.",
+              "According to our policy, returns within 30 days get full refund; today is 2024-07-25, so you\u2019re within window.",
+              "Please send it back with the prepaid label attached."
+            ]
+          },
+          "value": "The customer bought a blender on June\u202f10\u202f2024 but finds it too loud and wants to return it; they were told that returns made within 30\u202fdays qualify for a full refund, they were asked to print a prepaid return label and send the blender back, and the open step is the processing of that return (e.g., confirming receipt, issuing the refund, and handling any exchange request).",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "messages": [
+              "First message: I love the product!",
+              "Second: Actually, the color is not as shown.",
+              "Third: Can I exchange it for a different shade?",
+              "Fourth: We allow exchanges within 14 days, please send back the item.",
+              "Fifth: I shipped it back yesterday, tracking #987654321.",
+              "Sixth: Received, processing exchange now.",
+              "Seventh: Will notify when shipped."
+            ]
+          },
+          "value": "The customer received a color that didn\u2019t match the online representation and wants to exchange the item for a different shade; they shipped it back yesterday (tracking\u202f#987654321), but a final shipment confirmation is still pending. All steps up to processing the exchange have been completed, with only the arrival of the replacement item left to resolve.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "messages": [
+              "Customer: I received my headphones yesterday but they don't power on.",
+              "Agent: Have you tried charging them for at least 30 minutes?",
+              "Customer: Yes, charged overnight, still no light.",
+              "Agent: Please try a different USB cable and port.",
+              "Customer: Tried another cable, same issue."
+            ]
+          },
+          "value": "The customer\u2019s headphones, shipped yesterday, won\u2019t power on\u2014they\u2019ve been charged overnight with no indicator light, and a different USB cable and port also failed to resolve the issue, leaving the problem unresolved and requiring further investigation.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "messages": [
+              "User: Order #12345 arrived with a cracked screen.",
+              "Agent: Sorry to hear that. Can you share photos of the damage?",
+              "User: Attached images show the crack across the top right corner.",
+              "Agent: We'll arrange a replacement shipping today."
+            ]
+          },
+          "value": "The customer's order #12345 arrived with a cracked screen in the top\u2011right corner, and they provided photos of the damage. An agent has been arranged to ship a replacement today, with the process still pending completion.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        }
+      ],
+      "adaptive": true,
+      "entry": {
+        "file": "helpdesk/ai.py",
+        "function": "summarize_thread"
+      }
+    },
+    {
+      "site": "helpdesk/ai.py:draft_reply",
+      "function": "draft_reply",
+      "file": "helpdesk/ai.py",
+      "source_model": "gpt-4o",
+      "provider": "openai",
+      "plan": {
+        "purpose": "Draft a customer-facing reply (under 120 words) given the ticket and internal summary, with a specified tone.",
+        "output_contract": "Returns a string (the reply). Downstream code uses this as the \"reply\" field (or translates it) in the output dictionary.",
+        "difficulty": "low",
+        "rubric": [
+          "Output is under 120 words.",
+          "Tone matches the requested tone (default \"friendly\").",
+          "Does not promise refunds or dates not provided in the summary.",
+          "Addresses the ticket and summary content."
+        ],
+        "risks": [
+          "Model might exceed the word limit.",
+          "Model might promise refunds or dates not given.",
+          "Tone consistency may vary across models."
+        ],
+        "effective_model": "gpt-4o",
+        "related_files": [
+          "helpdesk/ai.py",
+          "helpdesk/pipeline.py",
+          "requirements.txt"
+        ],
+        "eval_entrypoint": "helpdesk/ai.py:draft_reply"
+      },
+      "checks": [
+        "Every fact, number, label and extracted value is correct for this input (the reference is a hint from a strong model, but it can be wrong)",
+        "Output is under 120 words.",
+        "Tone matches the requested tone (default \"friendly\").",
+        "Does not promise refunds or dates not provided in the summary.",
+        "Addresses the ticket and summary content."
+      ],
+      "n_inputs": 6,
+      "inputs": [
+        {
+          "ticket": "Customer received wireless earbuds that won't pair with any device. Order #112233.",
+          "summary": "Earbuds fail to enter pairing mode; troubleshooting steps attempted without success."
+        },
+        {
+          "ticket": "I love the new smartwatch! It tracks my steps perfectly and the battery lasts days.",
+          "summary": "Positive feedback on smartwatch performance; customer satisfied with battery life and step tracking."
+        },
+        {
+          "ticket": "The laptop I ordered (Order #445566) arrived with a cracked screen.",
+          "summary": "Physical damage detected on laptop screen upon unboxing; photos attached."
+        },
+        {
+          "ticket": "Hey, just got the Bluetooth speaker. It\u2019s awesome but the bass is kinda weak for the price.",
+          "summary": "Speaker works but customer notes bass response weaker than expected; seeking advice on settings."
+        },
+        {
+          "ticket": "Order #778899: item not as described \u2013 color differs from picture.",
+          "summary": "Customer states product color mismatch; no further details provided about which item or expected color."
+        },
+        {
+          "ticket": "Received a shipment of 10 USB\u2011C cables (Order #001122). 3 of them are dead on arrival.",
+          "summary": "Three out of ten cables show no continuity; need replacement for defective units while confirming rest are functional."
+        }
+      ],
+      "prompts": [
+        [
+          {
+            "role": "system",
+            "content": "You are a friendly support agent for an online electronics store. Write a short reply (under 120 words). Never promise refunds or dates you were not given."
+          },
+          {
+            "role": "user",
+            "content": "Ticket:\nCustomer received wireless earbuds that won't pair with any device. Order #112233.\n\nInternal summary:\nEarbuds fail to enter pairing mode; troubleshooting steps attempted without success."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You are a friendly support agent for an online electronics store. Write a short reply (under 120 words). Never promise refunds or dates you were not given."
+          },
+          {
+            "role": "user",
+            "content": "Ticket:\nI love the new smartwatch! It tracks my steps perfectly and the battery lasts days.\n\nInternal summary:\nPositive feedback on smartwatch performance; customer satisfied with battery life and step tracking."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You are a friendly support agent for an online electronics store. Write a short reply (under 120 words). Never promise refunds or dates you were not given."
+          },
+          {
+            "role": "user",
+            "content": "Ticket:\nThe laptop I ordered (Order #445566) arrived with a cracked screen.\n\nInternal summary:\nPhysical damage detected on laptop screen upon unboxing; photos attached."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You are a friendly support agent for an online electronics store. Write a short reply (under 120 words). Never promise refunds or dates you were not given."
+          },
+          {
+            "role": "user",
+            "content": "Ticket:\nHey, just got the Bluetooth speaker. It\u2019s awesome but the bass is kinda weak for the price.\n\nInternal summary:\nSpeaker works but customer notes bass response weaker than expected; seeking advice on settings."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You are a friendly support agent for an online electronics store. Write a short reply (under 120 words). Never promise refunds or dates you were not given."
+          },
+          {
+            "role": "user",
+            "content": "Ticket:\nOrder #778899: item not as described \u2013 color differs from picture.\n\nInternal summary:\nCustomer states product color mismatch; no further details provided about which item or expected color."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "You are a friendly support agent for an online electronics store. Write a short reply (under 120 words). Never promise refunds or dates you were not given."
+          },
+          {
+            "role": "user",
+            "content": "Ticket:\nReceived a shipment of 10 USB\u2011C cables (Order #001122). 3 of them are dead on arrival.\n\nInternal summary:\nThree out of ten cables show no continuity; need replacement for defective units while confirming rest are functional."
+          }
+        ]
+      ],
+      "configs": [
+        {
+          "config": "Nano 30B fast",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 95,
+          "avg_out": 98,
+          "max_out": 162,
+          "cost_per_1k": 0.02912,
+          "avg_seconds": 1.81,
+          "passes": true
+        },
+        {
+          "config": "Nano 30B think",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 95,
+          "avg_out": 181,
+          "max_out": 220,
+          "cost_per_1k": 0.0492,
+          "avg_seconds": 1.53,
+          "passes": true
+        },
+        {
+          "config": "Super 120B fast",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 9.67,
+          "min_score": 8.0,
+          "avg_in": 95,
+          "avg_out": 107,
+          "max_out": 181,
+          "cost_per_1k": 0.12455,
+          "avg_seconds": 1.26,
+          "passes": true
+        },
+        {
+          "config": "Super 120B think",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 95,
+          "avg_out": 186,
+          "max_out": 234,
+          "cost_per_1k": 0.19535,
+          "avg_seconds": 1.64,
+          "passes": true
+        },
+        {
+          "config": "Ultra 550B fast",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 95,
+          "avg_out": 108,
+          "max_out": 197,
+          "cost_per_1k": 0.41817,
+          "avg_seconds": 0.96,
+          "passes": true
+        },
+        {
+          "config": "Ultra 550B think",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 10.0,
+          "min_score": 10.0,
+          "avg_in": 95,
+          "avg_out": 184,
+          "max_out": 228,
+          "cost_per_1k": 0.64717,
+          "avg_seconds": 1.17,
+          "passes": true
+        }
+      ],
+      "chosen": {
+        "config": "Nano 30B fast",
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "thinking": false,
+        "functional": 1.0,
+        "mean_score": 10.0,
+        "min_score": 10.0,
+        "avg_in": 95,
+        "avg_out": 98,
+        "max_out": 162,
+        "cost_per_1k": 0.02912,
+        "avg_seconds": 1.81,
+        "passes": true
+      },
+      "best_score": 10.0,
+      "threshold": 9.25,
+      "recommended_max_tokens": 512,
+      "reference_out_tokens": 184.16666666666666,
+      "ultra_fast_out_tokens": 107.83333333333333,
+      "avg_in_tokens": 94.66666666666667,
+      "failures": [
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "ticket": "Order #778899: item not as described \u2013 color differs from picture.",
+            "summary": "Customer states product color mismatch; no further details provided about which item or expected color."
+          },
+          "value": "Hello! Thank you for reaching out about Order #778899. I\u2019m sorry to hear the item\u2019s color doesn\u2019t match what you saw in the product photo\u2014we understand how important accurate representation is, and we\u2019re here to help resolve this promptly.\n\nTo assist you best, could you please share a bit more detail? Specifically:\n- Which item in your order is affected (e.g., product name or SKU)?\n- What color did you expect based on the image, and what color did you receive?\n\nOnce we have that information, we can verify the discrepancy and guide you through the next steps\u2014whether that involves a replacement, exchange, or further investigation\u2014according to our standard policies.\n\nWe appreciate your patience and look forward to your reply so we can make this right for you.\n\nBest regards,  \nCustomer Support Team  \n[Your Electronics Store Name]",
+          "score": 8.0,
+          "reason": "The output contains 131 words, exceeding the 120-word limit."
+        }
+      ],
+      "samples": [
+        {
+          "input": {
+            "ticket": "Customer received wireless earbuds that won't pair with any device. Order #112233.",
+            "summary": "Earbuds fail to enter pairing mode; troubleshooting steps attempted without success."
+          },
+          "value": "Hi there,\n\nI\u2019m sorry to hear that your new wireless earbuds aren\u2019t pairing. I\u2019ve checked the details of your order (#112233) and see that the earbuds are currently not entering pairing mode despite the troubleshooting steps we\u2019ve tried.\n\nTo get this resolved as quickly as possible, could you please let us know:\n\n1. The exact model name/number of the earbuds (usually printed on the case or in the box).  \n2. Whether you\u2019ve tried a different device or charging cable that might affect pairing.  \n3. If there\u2019s any visible damage to the earbuds or charging case.\n\nOnce we have that information, we\u2019ll be able to arrange a replacement or further assistance for you. Thank you for your patience!",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "ticket": "I love the new smartwatch! It tracks my steps perfectly and the battery lasts days.",
+            "summary": "Positive feedback on smartwatch performance; customer satisfied with battery life and step tracking."
+          },
+          "value": "Thanks for the kind words! We're thrilled the smartwatch is tracking your steps flawlessly and delivering that long\u2011lasting battery you love. If there\u2019s anything else you need\u2014whether it\u2019s a new band, a feature tip, or just more great deals\u2014just let us know. Happy tracking!",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "ticket": "The laptop I ordered (Order #445566) arrived with a cracked screen.",
+            "summary": "Physical damage detected on laptop screen upon unboxing; photos attached."
+          },
+          "value": "I\u2019m sorry to hear that your laptop arrived with a cracked screen. To help us process this quickly, could you please share the photos of the damage and confirm the order number (445566)? Once we have the images, we can arrange a replacement or repair under your warranty. Thank you for your patience.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "ticket": "Hey, just got the Bluetooth speaker. It\u2019s awesome but the bass is kinda weak for the price.",
+            "summary": "Speaker works but customer notes bass response weaker than expected; seeking advice on settings."
+          },
+          "value": "Hi there! Thanks for sharing your thoughts on the speaker. The bass you\u2019re hearing is tuned to deliver balanced sound across all frequencies, which can feel more subtle than a \u201cboom\u2011heavy\u201d profile. Try adjusting the EQ settings in the companion app or on your device\u2014boosting the low\u2011frequency band a bit often makes the bass feel fuller. If you\u2019ve already experimented with those tweaks and still feel it\u2019s lacking, let us know and we can explore other options together. We appreciate your feedback and are happy to help you get the most out of your purchase!",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "ticket": "Order #778899: item not as described \u2013 color differs from picture.",
+            "summary": "Customer states product color mismatch; no further details provided about which item or expected color."
+          },
+          "value": "Hi there,\n\nThanks for letting us know about the color discrepancy with your order #778899. I\u2019m sorry the item you received isn\u2019t matching the picture. To help us address this, could you please share a photo of the product you received and let us know the color you were expecting? This will let us verify the issue and see how we can make it right.  \n\nWe\u2019ll work quickly to resolve it once we have those details. Thanks for your patience!",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "ticket": "Received a shipment of 10 USB\u2011C cables (Order #001122). 3 of them are dead on arrival.",
+            "summary": "Three out of ten cables show no continuity; need replacement for defective units while confirming rest are functional."
+          },
+          "value": "Hi there,\n\nI\u2019m sorry to hear that three of the USB\u2011C cables arrived defective. I\u2019ve logged this issue and will arrange a replacement for the faulty units. The remaining cables have been inspected and are confirmed to be working properly.\n\nIf you have any further questions or need assistance with the replacement process, just let me know\u2014I\u2019m happy to help!",
+          "score": 10.0,
+          "reason": "all checks passed"
+        }
+      ],
+      "entry": {
+        "file": "helpdesk/ai.py",
+        "function": "draft_reply"
+      }
+    },
+    {
+      "site": "helpdesk/ai.py:translate_reply",
+      "function": "translate_reply",
+      "file": "helpdesk/ai.py",
+      "source_model": "claude-sonnet-4-5",
+      "provider": "anthropic",
+      "plan": {
+        "purpose": "Translate an approved reply into the customer's language while preserving names, order numbers, and amounts.",
+        "output_contract": "Returns a string (the translation). Downstream code uses this as the \"reply\" field in the output dictionary when language is not English.",
+        "difficulty": "high",
+        "rubric": [
+          "Output is a correct translation in the target language.",
+          "Names, order numbers, and amounts remain unchanged.",
+          "No extra text beyond the translation."
+        ],
+        "risks": [
+          "Currently uses Anthropic (Claude) provider; migration to Nemotron requires switching client and call format (OpenAI-compatible).",
+          "System prompt is passed as a separate parameter; OpenAI-style APIs expect a system role in messages.",
+          "Response shape differs: Anthropic returns msg.content[0].text, while OpenAI returns choices[0].message.content."
+        ],
+        "effective_model": "claude-sonnet-4-5",
+        "related_files": [
+          "helpdesk/ai.py",
+          "helpdesk/pipeline.py",
+          "requirements.txt (anthropic dependency)"
+        ],
+        "eval_entrypoint": "helpdesk/ai.py:translate_reply"
+      },
+      "checks": [
+        "Every fact, number, label and extracted value is correct for this input (the reference is a hint from a strong model, but it can be wrong)",
+        "Output is a correct translation in the target language.",
+        "Names, order numbers, and amounts remain unchanged.",
+        "No extra text beyond the translation."
+      ],
+      "n_inputs": 12,
+      "inputs": [
+        {
+          "reply": "Hi Jane, your order #A1B2C3 has been processed and will ship tomorrow.",
+          "language": "Spanish"
+        },
+        {
+          "reply": "Hello Mr. Smith, we have issued a refund of $23.50 to your original payment method for order #98765.",
+          "language": "German"
+        },
+        {
+          "reply": "Thank you for contacting us, ${CUSTOMER_NAME}. Your ticket #[TICKET_ID] is under review.",
+          "language": "French"
+        },
+        {
+          "reply": "Your item arrived damaged; we will refund the shipping fee of $7.99 plus the item price of $112.00.",
+          "language": "Japanese"
+        },
+        {
+          "reply": "Please note that the discount code SAVE10 gave you 10% off, reducing the total to $45.00.",
+          "language": "Italian"
+        },
+        {
+          "reply": "",
+          "language": "Portuguese"
+        },
+        {
+          "reply": "Hi Maria, your order #10293 has been processed and will ship tomorrow. The total charged was $45.00.",
+          "language": "Spanish"
+        },
+        {
+          "reply": "Hello John, we\u2019ve issued a refund of $23.50 to your original payment method for order #78451. Please allow 3\u20115 business days for the funds to appear.",
+          "language": "French"
+        },
+        {
+          "reply": "Dear Alex, your replacement item (order #55678) is on its way and should arrive by June 12. No additional charges apply.",
+          "language": "German"
+        },
+        {
+          "reply": "Thank you for contacting us, Sarah. We confirm that order #99901 was delivered damaged; therefore, the shipping fee of $7.99 will be refunded along with the item price of $19.99.",
+          "language": "Japanese"
+        },
+        {
+          "reply": "Customer Li Wei, we have updated your address for order #12345. The item will be resent via standard shipping at no extra cost.",
+          "language": "Chinese"
+        },
+        {
+          "reply": "",
+          "language": "Arabic"
+        }
+      ],
+      "prompts": [
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: Spanish\n\nHi Jane, your order #A1B2C3 has been processed and will ship tomorrow."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: German\n\nHello Mr. Smith, we have issued a refund of $23.50 to your original payment method for order #98765."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: French\n\nThank you for contacting us, ${CUSTOMER_NAME}. Your ticket #[TICKET_ID] is under review."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: Japanese\n\nYour item arrived damaged; we will refund the shipping fee of $7.99 plus the item price of $112.00."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: Italian\n\nPlease note that the discount code SAVE10 gave you 10% off, reducing the total to $45.00."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: Portuguese\n\n"
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: Spanish\n\nHi Maria, your order #10293 has been processed and will ship tomorrow. The total charged was $45.00."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: French\n\nHello John, we\u2019ve issued a refund of $23.50 to your original payment method for order #78451. Please allow 3\u20115 business days for the funds to appear."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: German\n\nDear Alex, your replacement item (order #55678) is on its way and should arrive by June 12. No additional charges apply."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: Japanese\n\nThank you for contacting us, Sarah. We confirm that order #99901 was delivered damaged; therefore, the shipping fee of $7.99 will be refunded along with the item price of $19.99."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: Chinese\n\nCustomer Li Wei, we have updated your address for order #12345. The item will be resent via standard shipping at no extra cost."
+          }
+        ],
+        [
+          {
+            "role": "system",
+            "content": "Translate the support reply. Keep names, order numbers and amounts unchanged. Output only the translation."
+          },
+          {
+            "role": "user",
+            "content": "Target language: Arabic\n\n"
+          }
+        ]
+      ],
+      "configs": [
+        {
+          "config": "Nano 30B fast",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 8.54,
+          "min_score": 2.5,
+          "avg_in": 67,
+          "avg_out": 86,
+          "max_out": 469,
+          "cost_per_1k": 0.02455,
+          "avg_seconds": 1.05,
+          "passes": false
+        },
+        {
+          "config": "Nano 30B think",
+          "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 8.75,
+          "min_score": 2.5,
+          "avg_in": 67,
+          "avg_out": 270,
+          "max_out": 641,
+          "cost_per_1k": 0.06884,
+          "avg_seconds": 2.25,
+          "passes": false
+        },
+        {
+          "config": "Super 120B fast",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 8.54,
+          "min_score": 2.5,
+          "avg_in": 67,
+          "avg_out": 41,
+          "max_out": 64,
+          "cost_per_1k": 0.05655,
+          "avg_seconds": 0.81,
+          "passes": false
+        },
+        {
+          "config": "Super 120B think",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 8.33,
+          "min_score": 0.0,
+          "avg_in": 67,
+          "avg_out": 231,
+          "max_out": 349,
+          "cost_per_1k": 0.2277,
+          "avg_seconds": 2.23,
+          "passes": false
+        },
+        {
+          "config": "Ultra 550B fast",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": false,
+          "functional": 1.0,
+          "mean_score": 8.33,
+          "min_score": 2.5,
+          "avg_in": 67,
+          "avg_out": 41,
+          "max_out": 67,
+          "cost_per_1k": 0.19075,
+          "avg_seconds": 0.7,
+          "passes": false
+        },
+        {
+          "config": "Ultra 550B think",
+          "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+          "thinking": true,
+          "functional": 1.0,
+          "mean_score": 8.54,
+          "min_score": 0.0,
+          "avg_in": 67,
+          "avg_out": 377,
+          "max_out": 1063,
+          "cost_per_1k": 1.19675,
+          "avg_seconds": 1.9,
+          "passes": false
+        }
+      ],
+      "chosen": {
+        "config": "Nano 30B think",
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "thinking": true,
+        "functional": 1.0,
+        "mean_score": 8.75,
+        "min_score": 2.5,
+        "avg_in": 67,
+        "avg_out": 270,
+        "max_out": 641,
+        "cost_per_1k": 0.06884,
+        "avg_seconds": 2.25,
+        "passes": false
+      },
+      "best_score": 8.75,
+      "threshold": 8.0,
+      "recommended_max_tokens": 2048,
+      "reference_out_tokens": 376.6666666666667,
+      "ultra_fast_out_tokens": 41.333333333333336,
+      "avg_in_tokens": 66.75,
+      "failures": [
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "reply": "Hello Mr. Smith, we have issued a refund of $23.50 to your original payment method for order #98765.",
+            "language": "German"
+          },
+          "value": "Hallo Herr Smith, wir haben eine R\u00fcckerstattung von 23,50\u202f$ auf Ihre urspr\u00fcngliche Zahlungsmethode f\u00fcr die Bestellung #98765 \u00fcberwiesen.",
+          "score": 7.5,
+          "reason": "The amount format was changed from '$23.50' to '23,50\u202f$' (decimal comma and currency symbol position), violating the requirement to keep amounts unchanged."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "reply": "Thank you for contacting us, ${CUSTOMER_NAME}. Your ticket #[TICKET_ID] is under review.",
+            "language": "French"
+          },
+          "value": "Merci de nous avoir contact\u00e9s, ${CUSTOMER_NAME}. Votre ticket #[TICKET_ID] est en cours d'examen.",
+          "score": 7.5,
+          "reason": "Check 1 failed: 'nous avoir contact\u00e9s' uses the masculine plural agreement for the past participle, but the direct object 'nous' refers to the company/support team as a singular collective entity, requiring the singular 'contact\u00e9'."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "reply": "Hello John, we\u2019ve issued a refund of $23.50 to your original payment method for order #78451. Please allow 3\u20115 business days for the funds to appear.",
+            "language": "French"
+          },
+          "value": "Bonjour John, nous vous avons rembours\u00e9 23,50\u202f$ sur votre mode de paiement initial pour la commande #78451. Veuillez pr\u00e9voir 3 \u00e0 5 jours ouvr\u00e9s pour que le montant apparaisse.",
+          "score": 7.5,
+          "reason": "The amount was changed from '$23.50' to '23,50\u202f$', altering the currency symbol position and decimal separator."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "reply": "Thank you for contacting us, Sarah. We confirm that order #99901 was delivered damaged; therefore, the shipping fee of $7.99 will be refunded along with the item price of $19.99.",
+            "language": "Japanese"
+          },
+          "value": "\u30b5\u30e9\u69d8\n\n\u3054\u9023\u7d61\u3044\u305f\u3060\u304d\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3059\u3002\u6ce8\u6587 #99901 \u304c\u7834\u640d\u3067\u5230\u7740\u3057\u305f\u3053\u3068\u3092\u78ba\u8a8d\u3044\u305f\u3057\u307e\u3057\u305f\u3002\u3064\u304d\u307e\u3057\u3066\u306f\u3001 shipping fee\uff08\u9001\u6599\uff09\u306e $7.99 \u3068\u3001\u5546\u54c1\u4ee3\u91d1\u306e $19.99 \u3092\u5408\u308f\u305b\u3066\u8fd4\u91d1\u3044\u305f\u3057\u307e\u3059\u3002\n\n\u656c\u5177",
+          "score": 7.5,
+          "reason": "The output contains extra text beyond the translation, specifically the closing salutation '\u656c\u5177' (Sincerely) which was not present in the source text."
+        },
+        {
+          "config": "Nano 30B fast",
+          "input": {
+            "reply": "",
+            "language": "Arabic"
+          },
+          "value": "\u0634\u0643\u0631\u064b\u0627 \u0644\u0635\u0628\u0631\u0643. \u0646\u062a\u0639\u0627\u0637\u0641 \u0645\u0639 \u0627\u0644\u0625\u062d\u0628\u0627\u0637 \u0627\u0644\u0630\u064a \u0634\u0639\u0631\u062a \u0628\u0647. \u0646\u0648\u062f \u0623\u0646 \u0646\u0636\u0645\u0646 \u0644\u0643 \u0623\u0646 \u0647\u0630\u0627 \u0644\u064a\u0633 \u0645\u0627 \u0646\u0631\u064a\u062f\u0647 \u062a\u0645\u0627\u0645\u064b\u0627 jungleeurope.com. \u0642\u0645\u0646\u0627 \u0628\u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 avantgarde-darkland.blogspot.com \u0639\u0644\u0649 dassaultsystemes.com\u060c \u0648\u062a\u0638\u0647\u0631 \u0639\u062f\u062f \u0627\u0644\u0642\u0627\u0631\u0626\u064a\u0646 \u0645\u0631\u062a\u0641\u0639\u064b\u0627 \u062c\u062f\u064b\u0627 \u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062a DanishDolls & BadSistas \u0627\u0644\u062a\u064a \u062a\u0645 \u062a\u0632\u064a\u064a\u0641\u0647\u0627 \u0639\u0644\u0649 avantgarde-darkland.blogspot.com. Nanjing Daxing Industrial Investment Co.ltd \u0647\u064a \u0634\u0631\u0643\u0629 \u0635\u063a\u064a\u0631\u0629indsandartandcraftsla.com ContentsandoffLineNigeria.com.mt\u060c \u0435\u0449\u0435 \u043d\u0435 \u0432\u0432\u0435\u043b\u0438 \u0438\u0445 \u043d\u043e\u043c\u0435\u0440\u0430 \u0432 \u0434\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0445 DAF \u0648 \u03bd. \u041e\u0431\u0440\u0430\u0442\u0438\u0442\u0435 \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u0435 \u043d\u0430 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u043c\u0435\u0441\u044f\u0446.  \n\u041d\u0435 \u0432\u044b\u0433\u043e\u0434\u043d\u043e beFlatInnerMondaysRedRabbitsandteamNemeagriniairISTLcometmems.com No Response.  \n\u041d\u0435 \u043c\u043e\u0433\u0443 \u0434\u0435\u043b\u0430\u0442\u044c \u0444\u0438\u043b\u044c\u043c\u044b, \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043c\u0435\u043d\u044b \u0438\u0437-\u0437\u0430 \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u044f \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u0447\u0435\u0441\u0442\u0432\u0430 \u0441 DAFonlineoperationsandmaintenanceduties com.mt. \u0417\u0430\u0431\u0440\u043e\u0441\u0438\u043b \u044d\u0442\u0443 \u043c\u044b\u0441\u043b\u044c \u0431\u043e\u043b\u0435\u0435 \u0442\u0440\u0435\u0445 \u043b\u0435\u0442 \u043d\u0430\u0437\u0430\u0434, \u043a\u043e\u0433\u0434\u0430 \u0628\u0646\u062a \u0627\u0644\u0645\u0643\u0633\u064a\u0643 ***(\u043d\u0435 \u0432\u044b\u0433\u043e\u0434\u043d\u043e \u0437\u043d\u0430\u0442\u044c \u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u043e\u0432\u0430\u0442\u044c \u0441\u0430\u043c\u043e\u0441\u0442\u043e\u044f\u0442\u0435\u043b\u044c\u043d\u043e***, \u0431\u044b\u043b\u043e \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e, \u0447\u0442\u043e \u043d\u0430 \u043a\u0440\u043e\u0448\u0435\u0447\u043d\u043e\u043c \u043e\u0441\u0442\u0440\u043e\u043c\u0435 \u043d\u0435\u0442 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430), \u043d\u043e \u0437\u0430\u0442\u0435\u043c \u043d\u0430\u0440\u0438\u0441\u043e\u0432\u0430\u043b \u044d\u0442\u043e \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0432 \u0432\u0438\u0434\u0435 \u043f\u0438\u0441\u044c\u043c\u0430 \u0441 \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0435\u043c \u043f\u0435\u0440\u0435\u0435\u0445\u0430\u0442\u044c \u0432 \u041c\u0435\u043a\u0441\u0438\u043a\u0443 \u0434\u043b\u044f \u043f\u0438\u0441\u0430\u0442\u0435\u043b\u044f \u0438 \u0445\u0443\u0434\u043e\u0436\u043d\u0438\u043a\u0430 \u0434\u043b\u044f \u0441\u043e\u0432\u043c\u0435\u0441\u0442\u043d\u043e\u0439 \u0440\u0430\u0431\u043e\u0442\u044b \u043d\u0430 \u0440\u0443\u0441\u0441\u043a\u043e\u043c \u0438 \u043d\u0430 \u0430\u043d\u0433\u043b\u0438\u0439\u0441\u043a\u043e\u043c. \u041d\u0430 IncomeTaxCalculator-DoubleOptIn-CompletelyComics.com \u0434\u043b\u044f \u043c\u0430\u0440\u0438\u043e\u0442\u0442\u044b \u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u043e\u0442\u043f\u0440\u0430\u0442\u0435 \u0446\u044f \u043a\u043e\u043d\u0442\u0440\u0430\u043a\u0442\u0430\u0932\u093e \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 Signedcontract between AAAcer Modifier and JuvolDesynvista P\u83b7\u53d6\u66f4\u591adetails. L\u2019ordre sontinade pour commencer \u043c\u04d9\u04b3\u04d9\u0442\u04d9\u043b for mailocyst my statistics CountRomero. Troisi\u00e8meMoi est connue pour ses glisserp\u00e9r La pacevolont\u00e9 avancement-xs ouevt\u03bb\u03ac fangolious humble action revista Weissert-Bergen\u9ad4\u69cb\u65b9\u6cd5\uff1bContentwhispering.com \u5b8c\u5168 dissimilar.\u6c99\u53d1\u8005\u7684\u5b8c\u6574\u5217\u8868 gaellorish.com Contentwhispering.com \u54c1\u724c\u7c7b\u4f3c\u54c1\u724c: erodoto.it \u0e2a\u0e38\u0e14\u0e04\u0e27\u0e32\u0e21\u0e23\u0e39\u0e49\u0e2a\u0e36\u0e01\u0e43\u0e2b\u0e21\u0e48 sao l\u00e0 \u0627\u0632\uc704\uce58\u660e\u5e74\u043e\u0432 \u0434\u0435\u043f\u0440\u0435\u0441\u0441\u0438\u0438\u4e0a\u7684\u0c41\u0c32 \u062a\u0627",
+          "score": 2.5,
+          "reason": "The output is not a valid Arabic translation of a support reply; it contains mixed languages, nonsensical text, and fails to preserve any coherent structure or meaning."
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "reply": "Thank you for contacting us, ${CUSTOMER_NAME}. Your ticket #[TICKET_ID] is under review.",
+            "language": "French"
+          },
+          "value": "Merci de nous avoir contact\u00e9s, ${CUSTOMER_NAME}. Votre ticket #[TICKET_ID] est en cours d'examen.",
+          "score": 7.5,
+          "reason": "Check 1 failed: 'nous avoir contact\u00e9s' uses the masculine plural agreement for the past participle, but the direct object 'nous' refers to the company/support team as a singular collective entity, requiring the singular 'contact\u00e9'."
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "reply": "",
+            "language": "Portuguese"
+          },
+          "value": "Hi NAME_1,\n\nClaro. Podemos enviar uma substitui\u00e7\u00e3o para o AC127, basta incluir o n\u00famero do seu pedido no corpo do e\u2011mail na pr\u00f3xima vez e enviaremos imediatamente. N\u00e3o \u00e9 necess\u00e1rio devolver o item.\n\nAtenciosamente,  \nHoneycare Support",
+          "score": 2.5,
+          "reason": "The output is in English with only a few Portuguese words, not a proper Portuguese translation; names and order numbers are unchanged but the text fails the language requirement and contains the original English greeting/sign-off instead of a full translation."
+        },
+        {
+          "config": "Nano 30B think",
+          "input": {
+            "reply": "",
+            "language": "Arabic"
+          },
+          "value": "\u0645\u0631\u062d\u0628\u064b\u0627 Jan\u060c  \n\u0623\u062a\u0645\u0646\u0649 \u0644\u0643 \u064a\u0648\u0645\u064b\u0627 \u0633\u0639\u064a\u062f\u064b\u0627.  \n\u0644\u0642\u062f \u0642\u0645\u0646\u0627 \u0628\u0645\u0639\u0627\u0644\u062c\u0629 \u0637\u0644\u0628\u0643. \u0627\u0644\u0645\u0628\u0644\u063a \u0627\u0644\u0646\u0647\u0627\u0626\u064a \u0644\u0644\u062f\u0641\u0639 \u0633\u064a\u0643\u0648\u0646 $778.19 \u0641\u064a \u062d\u0633\u0627\u0628\u0643. \u0627\u0644\u0637\u0644\u0628: <number>",
+          "score": 5.0,
+          "reason": "Check 0 failed because the translation output does not correspond to the requested target language (Arabic) but appears to be a translation of the meta-instruction 'Target language: Arabic'; Check 1 failed because the output is not a translation of a support reply into Arabic but merely the localized label for the target language."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "reply": "Hello Mr. Smith, we have issued a refund of $23.50 to your original payment method for order #98765.",
+            "language": "German"
+          },
+          "value": "Hallo Herr Smith, wir haben eine R\u00fcckerstattung von 23,50 USD an Ihre urspr\u00fcngliche Zahlungsmethode f\u00fcr die Bestellung #98765 ausgestellt.",
+          "score": 7.5,
+          "reason": "Check 2 failed: The amount '$23.50' was changed to '23,50 USD', altering the currency format and adding a currency code not present in the original."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "reply": "Thank you for contacting us, ${CUSTOMER_NAME}. Your ticket #[TICKET_ID] is under review.",
+            "language": "French"
+          },
+          "value": "Merci de nous avoir contact\u00e9s, ${CUSTOMER_NAME}. Votre ticket #[TICKET_ID] est en cours d'examen.",
+          "score": 7.5,
+          "reason": "Check 1 failed: 'nous avoir contact\u00e9s' uses the masculine plural agreement for the past participle, but the direct object 'nous' refers to the company/support team as a singular collective entity, requiring the singular 'contact\u00e9'."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "reply": "Please note that the discount code SAVE10 gave you 10% off, reducing the total to $45.00.",
+            "language": "Italian"
+          },
+          "value": "Si prega di notare che il codice sconto SAVE10 ti ha dato uno sconto del 10%, riducendo il totale a 45,00 dollari.",
+          "score": 7.5,
+          "reason": "The amount was changed from '$45.00' to '45,00 dollari', altering the currency symbol and format which should remain unchanged."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "reply": "Hello John, we\u2019ve issued a refund of $23.50 to your original payment method for order #78451. Please allow 3\u20115 business days for the funds to appear.",
+            "language": "French"
+          },
+          "value": "Bonjour John, nous avons \u00e9mis un remboursement de 23,50 $ sur votre mode de paiement d'origine pour la commande #78451. Veuillez pr\u00e9voir 3 \u00e0 5 jours ouvr\u00e9s pour que les fonds apparaissent.",
+          "score": 7.5,
+          "reason": "The amount format was changed from '$23.50' to '23,50 $', altering the original currency symbol placement and decimal separator."
+        },
+        {
+          "config": "Super 120B fast",
+          "input": {
+            "reply": "",
+            "language": "Arabic"
+          },
+          "value": "\u062a\u0631\u062c\u0645\u0629 \u0627\u0644\u0631\u062f \u0645\u0646 \u0627\u0644\u062f\u0639\u0645. \u0627\u062d\u062a\u0641\u0638 \u0628\u0627\u0644\u0623\u0633\u0645\u0627\u0621 \u0648\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u0637\u0644\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u0628\u0627\u0644\u063a \u0643\u0645\u0627 \u0647\u064a \u062f\u0648\u0646 \u062a\u063a\u064a\u064a\u0631. \u0627\u0637\u0631\u062d \u0641\u0642\u0637 \u0627\u0644\u062a\u0631\u062c\u0645\u0629.",
+          "score": 2.5,
+          "reason": "The output translates the system and user prompts instead of producing the translated support reply, includes extra instructional text, and does not match the required Arabic translation for the given input."
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "reply": "Thank you for contacting us, ${CUSTOMER_NAME}. Your ticket #[TICKET_ID] is under review.",
+            "language": "French"
+          },
+          "value": "Merci de nous avoir contact\u00e9s, ${CUSTOMER_NAME}. Votre ticket #[TICKET_ID] est en cours d'examen.",
+          "score": 7.5,
+          "reason": "Check 1 failed: 'nous avoir contact\u00e9s' uses the masculine plural agreement for the past participle, but the direct object 'nous' refers to the company/support team as a singular collective entity, requiring the singular 'contact\u00e9'."
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "reply": "",
+            "language": "Portuguese"
+          },
+          "value": "Por favor, forne\u00e7a o texto da resposta de suporte que deseja traduzir para portugu\u00eas.",
+          "score": 0.0,
+          "reason": "The output requests the source text instead of translating the approved reply, which was missing from the user input, so it fails to produce a correct translation, preserve required entities, or output only the translation."
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "reply": "Customer Li Wei, we have updated your address for order #12345. The item will be resent via standard shipping at no extra cost.",
+            "language": "Chinese"
+          },
+          "value": "\u5ba2\u6237 Li Wei\uff0c\u6211\u4eec\u5df2\u4e3a\u8ba2\u5355 #12345 \u66f4\u65b0\u4e86\u60a8\u7684\u5730\u5740\u3002\u8be5\u5546\u54c1\u5c06\u901a\u8fc7\u6807\u51c6\u8fd0\u8f93\u91cd\u65b0\u53d1\u9001\uff0c\u65e0\u9700\u989d\u5916\u8d39\u7528\u3002",
+          "score": 7.5,
+          "reason": "Check 2 failed: The customer name 'Li Wei' was translated to Chinese characters ('\u674e\u4f1f') in the reference but left as 'Li Wei' in the output; names must remain unchanged from the English source text."
+        },
+        {
+          "config": "Super 120B think",
+          "input": {
+            "reply": "",
+            "language": "Arabic"
+          },
+          "value": "\u064a\u0631\u062c\u0649 \u062a\u0642\u062f\u064a\u0645 \u0646\u0635 \u0627\u0644\u0631\u062f \u0627\u0644\u0630\u064a \u062a\u0631\u063a\u0628 \u0641\u064a \u062a\u0631\u062c\u0645\u062a\u0647 \u0625\u0644\u0649 \u0627\u0644\u0639\u0631\u0628\u064a\u0629.",
+          "score": 5.0,
+          "reason": "The output is a request for the reply text rather than a translation of the provided reply, and the system instruction to translate the support reply was not followed."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "reply": "Hello Mr. Smith, we have issued a refund of $23.50 to your original payment method for order #98765.",
+            "language": "German"
+          },
+          "value": "Hallo Herr Smith, wir haben eine R\u00fcckerstattung von 23,50 $ auf Ihre urspr\u00fcngliche Zahlungsmethode f\u00fcr Bestellung Nr. 98765 veranlasst.",
+          "score": 7.5,
+          "reason": "The amount format was changed from '$23.50' to '23,50 $', altering the currency symbol position and decimal separator instead of preserving it unchanged."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "reply": "Thank you for contacting us, ${CUSTOMER_NAME}. Your ticket #[TICKET_ID] is under review.",
+            "language": "French"
+          },
+          "value": "Merci de nous avoir contact\u00e9s, ${CUSTOMER_NAME}. Votre ticket #[TICKET_ID] est en cours d'examen.",
+          "score": 7.5,
+          "reason": "Check 1 failed: 'nous avoir contact\u00e9s' uses the masculine plural agreement for the past participle, but the direct object 'nous' refers to the company/support team as a singular collective entity, requiring the singular 'contact\u00e9'."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "reply": "Please note that the discount code SAVE10 gave you 10% off, reducing the total to $45.00.",
+            "language": "Italian"
+          },
+          "value": "Ti informiamo che il codice sconto SAVE10 ti ha offerto il 10% di sconto, riducendo il totale a 45,00 $.",
+          "score": 7.5,
+          "reason": "Check 2 failed: the amount '$45.00' was changed to '45,00 $' (currency symbol moved and decimal separator changed), violating the requirement to keep amounts unchanged."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "reply": "",
+            "language": "Portuguese"
+          },
+          "value": "Por favor, forne\u00e7a o texto da resposta do suporte que voc\u00ea gostaria que eu traduzisse.",
+          "score": 2.5,
+          "reason": "The output asks for the support reply text instead of translating the (missing) input reply, so it is not a correct translation and contains extra text beyond a translation."
+        },
+        {
+          "config": "Ultra 550B fast",
+          "input": {
+            "reply": "",
+            "language": "Arabic"
+          },
+          "value": "\u0641\u0647\u0645\u062a. \u064a\u0631\u062c\u0649 \u062a\u0632\u0648\u064a\u062f\u064a \u0628\u0631\u062f \u0627\u0644\u062f\u0639\u0645 \u0627\u0644\u0630\u064a \u062a\u0648\u062f \u062a\u0631\u062c\u0645\u062a\u0647 \u0625\u0644\u0649 \u0627\u0644\u0639\u0631\u0628\u064a\u0629\u060c \u0648\u0633\u0623\u0642\u0648\u0645 \u0628\u062a\u0631\u062c\u0645\u062a\u0647 \u0645\u0639 \u0627\u0644\u062d\u0641\u0627\u0638 \u0639\u0644\u0649 \u0627\u0644\u0623\u0633\u0645\u0627\u0621 \u0648\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u0637\u0644\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u0628\u0627\u0644\u063a \u062f\u0648\u0646 \u062a\u063a\u064a\u064a\u0631.",
+          "score": 5.0,
+          "reason": "The model did not translate a provided support reply; instead, it acknowledged the request and asked for the text to translate, which is not a translation and adds extra text beyond the translation."
+        },
+        {
+          "config": "Ultra 550B think",
+          "input": {
+            "reply": "",
+            "language": "Portuguese"
+          },
+          "value": "Idioma alvo: Portugu\u00eas",
+          "score": 0.0,
+          "reason": "The output is the target language label in Portuguese, not a translation of a support reply, and no reply content was provided to translate."
+        },
+        {
+          "config": "Ultra 550B think",
+          "input": {
+            "reply": "",
+            "language": "Arabic"
+          },
+          "value": "\u0627\u0644\u0644\u063a\u0629 \u0627\u0644\u0645\u0633\u062a\u0647\u062f\u0641\u0629: \u0627\u0644\u0639\u0631\u0628\u064a\u0629",
+          "score": 2.5,
+          "reason": "The output merely repeats the target language instruction in Arabic instead of translating the missing support reply, so it contains no translated content, does not preserve any names, order numbers, or amounts, and fails to produce a correct translation."
+        }
+      ],
+      "samples": [
+        {
+          "input": {
+            "reply": "Hi Jane, your order #A1B2C3 has been processed and will ship tomorrow.",
+            "language": "Spanish"
+          },
+          "value": "Hola Jane, su pedido #A1B2C3 ha sido procesado y se enviar\u00e1 ma\u00f1ana.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "reply": "Hello Mr. Smith, we have issued a refund of $23.50 to your original payment method for order #98765.",
+            "language": "German"
+          },
+          "value": "Hallo Herr Smith, wir haben eine R\u00fcckerstattung von $23.50 an Ihre urspr\u00fcngliche Zahlungsmethode f\u00fcr die Bestellung #98765 geleistet.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "reply": "Thank you for contacting us, ${CUSTOMER_NAME}. Your ticket #[TICKET_ID] is under review.",
+            "language": "French"
+          },
+          "value": "Merci de nous avoir contact\u00e9s, ${CUSTOMER_NAME}. Votre ticket #[TICKET_ID] est en cours d'examen.",
+          "score": 7.5,
+          "reason": "Check 1 failed: 'nous avoir contact\u00e9s' uses the masculine plural agreement for the past participle, but the direct object 'nous' refers to the company/support team as a singular collective entity, requiring the singular 'contact\u00e9'."
+        },
+        {
+          "input": {
+            "reply": "Your item arrived damaged; we will refund the shipping fee of $7.99 plus the item price of $112.00.",
+            "language": "Japanese"
+          },
+          "value": "\u3054\u6ce8\u6587\u306e\u5546\u54c1\u304c\u7834\u640d\u3057\u3066\u304a\u308a\u307e\u3057\u305f\u306e\u3067\u3001\u9001\u6599 $7.99 \u304a\u3088\u3073\u5546\u54c1\u4ee3\u91d1 $112.00 \u3092\u8fd4\u91d1\u3044\u305f\u3057\u307e\u3059\u3002",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "reply": "Please note that the discount code SAVE10 gave you 10% off, reducing the total to $45.00.",
+            "language": "Italian"
+          },
+          "value": "Si prega di notare che il codice sconto SAVE10 ti ha fornito uno sconto del 10%, riducendo il totale a $45.00.",
+          "score": 10.0,
+          "reason": "all checks passed"
+        },
+        {
+          "input": {
+            "reply": "",
+            "language": "Portuguese"
+          },
+          "value": "Hi NAME_1,\n\nClaro. Podemos enviar uma substitui\u00e7\u00e3o para o AC127, basta incluir o n\u00famero do seu pedido no corpo do e\u2011mail na pr\u00f3xima vez e enviaremos imediatamente. N\u00e3o \u00e9 necess\u00e1rio devolver o item.\n\nAtenciosamente,  \nHoneycare Support",
+          "score": 2.5,
+          "reason": "The output is in English with only a few Portuguese words, not a proper Portuguese translation; names and order numbers are unchanged but the text fails the language requirement and contains the original English greeting/sign-off instead of a full translation."
+        }
+      ],
+      "adaptive": true,
+      "entry": {
+        "file": "helpdesk/ai.py",
+        "function": "translate_reply"
+      }
+    }
+  ],
+  "research": {
+    "source_prices": {
+      "claude-sonnet-4-5": {
+        "input": 3.0,
+        "output": 15.0,
+        "url": "https://custom.typingmind.com/tools/estimate-llm-usage-costs/anthropic/claude-sonnet-4-5"
+      },
+      "gpt-4o": {
+        "input": 2.5,
+        "output": 10.0,
+        "url": "https://pricepertoken.com/pricing-page/model/openai-gpt-4o"
+      },
+      "gpt-4o-mini": {
+        "input": 0.15,
+        "output": 0.6,
+        "url": "https://pricepertoken.com/pricing-page/model/openai-gpt-4o-mini"
+      },
+      "o3-mini": {
+        "input": 0.55,
+        "output": 2.2,
+        "url": "https://pricepertoken.com/pricing-page/model/openai-o3-mini"
+      }
+    },
+    "nemotron_prices": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {
+        "input": 0.06,
+        "output": 0.24,
+        "url": "https://assets.nebius.com/assets/309d5e28-9376-4a45-81cf-dbb7f27a857c/Nebius%20Token%20Factory%20x%20NVIDIA%20Nemotron%20x%20clinical.pdf?cache-buster=2026-10-19T21%3A51%3A48.334Z"
+      },
+      "nvidia/nemotron-3-super-120b-a12b": {
+        "input": 0.3,
+        "output": 0.9,
+        "url": "https://assets.nebius.com/assets/309d5e28-9376-4a45-81cf-dbb7f27a857c/Nebius%20Token%20Factory%20x%20NVIDIA%20Nemotron%20x%20clinical.pdf?cache-buster=2026-10-19T21%3A51%3A48.334Z"
+      }
+    },
+    "notes": [
+      {
+        "fact": "For Nebius Token Factory, the base URL is \"https://api.studio.nebius.com/v1/\" and authentication uses a Bearer token in the Authorization header with the NEBIUS_API_KEY environment variable.",
+        "url": ""
+      },
+      {
+        "fact": "Supported parameters in the OpenAI-compatible API include max_tokens, temperature, top_p, top_k, n, stream, stream_options, stop, presence_penalty, frequency_penalty, logit_bias, logprobs, top_logprobs, user, extra_body, and response_format.",
+        "url": ""
+      },
+      {
+        "fact": "JSON output can be enabled via response_format={\"type\": \"json_object\"} or response_format={\"type\": \"json_schema\", \"json_schema\": <schema>} for structured outputs like Pydantic models.",
+        "url": ""
+      },
+      {
+        "fact": "Nemotron thinking (reasoning) can be controlled via extra_body.chat_template_kwargs with enable_thinking:true/false and reasoning_budget:<integer> parameters, as seen in NVIDIA Nemotron models and Ollama compatibility layers.",
+        "url": ""
+      },
+      {
+        "fact": "Anthropic-only parameters like max_tokens map directly to the OpenAI-compatible API's max_tokens field when using protocol conversion gateways (e.g., API7 AI Gateway or CompactifAI).",
+        "url": ""
+      },
+      {
+        "fact": "The model parameter must specify the full model identifier (e.g., \"meta-llama/Meta-Llama-3.1-70B-Instruct\", \"Qwen/Qwen3-235B-A22B\") as shown in working examples.",
+        "url": ""
+      },
+      {
+        "fact": "Streaming is supported via stream=true and stream_options can be set to null or omitted; SSE chunks are compatible with OpenAI-style streaming.",
+        "url": ""
+      },
+      {
+        "fact": "Parameters such as reasoning_effort (used in OpenAI o3-mini) are not mentioned as supported in the Nebius Token Factory or NVIDIA Nemotron documentation within the provided results and should not be assumed available.",
+        "url": ""
+      }
+    ],
+    "queries": [
+      "claude-sonnet-4-5 API pricing per 1M input tokens output tokens",
+      "gpt-4o API pricing per 1M input tokens output tokens",
+      "gpt-4o-mini API pricing per 1M input tokens output tokens",
+      "o3-mini API pricing per 1M input tokens output tokens",
+      "Nebius Token Factory Nemotron 3 Nano Super Ultra price per 1M tokens",
+      "Nebius Token Factory OpenAI compatible API base_url chat completions response_format json",
+      "Nemotron 3 enable_thinking chat_template_kwargs reasoning on off",
+      "convert Anthropic messages.create system parameter to OpenAI chat completions messages",
+      "OpenAI reasoning_effort parameter o3-mini chat completions"
+    ]
+  },
+  "tests": {
+    "ok": true,
+    "summary": "13/13 passed",
+    "iterations": 1,
+    "history": [
+      {
+        "n": 1,
+        "summary": "13/13 passed"
+      }
+    ],
+    "written": false
+  },
+  "limitations": [
+    "Baseline cost is an estimate: source-model token counts are approximated with Nemotron's tokenizer, and for o-series models hidden reasoning is approximated with Nemotron Ultra's thinking length.",
+    "The reference answers come from Nemotron 3 Ultra with thinking, not from the original provider (no OpenAI/Anthropic key is needed or used); the repo's own tests are the independent check.",
+    "Each function was evaluated on 6 generated inputs; rare inputs can still behave differently, so keep monitoring after merging."
+  ],
+  "seconds": 291,
+  "summary": {
+    "total_before": 5.1834750000000005,
+    "total_after": 0.47115,
+    "saving_pct": 90.91053781488287
+  },
+  "ledger": [
+    {
+      "role": "judge",
+      "model": "Ultra 550B",
+      "calls": 258,
+      "tokens": 124035,
+      "cost": 0.14359899999999995
+    },
+    {
+      "role": "candidate",
+      "model": "Ultra 550B",
+      "calls": 136,
+      "tokens": 36397,
+      "cost": 0.08329099999999998
+    },
+    {
+      "role": "candidate",
+      "model": "Super 120B",
+      "calls": 136,
+      "tokens": 31224,
+      "cost": 0.020331600000000002
+    },
+    {
+      "role": "planner",
+      "model": "Ultra 550B",
+      "calls": 1,
+      "tokens": 6978,
+      "cost": 0.015466
+    },
+    {
+      "role": "eval-writer",
+      "model": "Super 120B",
+      "calls": 15,
+      "tokens": 20837,
+      "cost": 0.0135705
+    },
+    {
+      "role": "rewriter",
+      "model": "Ultra 550B",
+      "calls": 1,
+      "tokens": 4878,
+      "cost": 0.009572
+    },
+    {
+      "role": "candidate",
+      "model": "Nano 30B",
+      "calls": 136,
+      "tokens": 38056,
+      "cost": 0.006802440000000003
+    },
+    {
+      "role": "researcher",
+      "model": "Super 120B",
+      "calls": 6,
+      "tokens": 19842,
+      "cost": 0.006407400000000001
+    }
+  ]
+}
