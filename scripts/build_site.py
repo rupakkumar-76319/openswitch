@@ -7,6 +7,7 @@ Copies each run's report into docs/reports/ and examples/reports/, and writes do
 import html
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -31,6 +32,38 @@ def copy_reports(runs):
         shutil.copy(r["_repo"] / "OPENSWITCH_REPORT.md", dst / "OPENSWITCH_REPORT.md")
         shutil.copy(r["_repo"] / ".openswitch" / "result.json", dst / "result.json")
         shutil.copy(r["_repo"] / ".openswitch" / "report.html", dst / "report.html")
+        save_nemotron_code(r["_repo"], dst / "written-by-nemotron")
+
+
+NEMOTRON_NOTE = """# Code written by NVIDIA Nemotron during this migration
+
+`migration.diff` is the full change OpenSwitch committed on the `openswitch/nemotron` branch, and `files/`
+holds the changed files after the migration.
+
+- Application code, config and dependency changes, and `tests/test_openswitch_smoke.py` (if present), were
+  written by **Nemotron 3 Ultra 550B** (thinking on) through Nebius Token Factory. That covers the rewriter,
+  debugger and test-writer roles. Every one of these files passed OpenSwitch's AST checker and behavioural
+  check before it was kept.
+- `.env.example` and `tests/conftest.py` come from OpenSwitch's own templates, not from a model.
+"""
+
+
+def save_nemotron_code(repo: Path, dst: Path):
+    """Keep the code Nemotron 3 Ultra wrote during the migration: the full diff and the changed files."""
+    if dst.exists():
+        shutil.rmtree(dst)
+    dst.mkdir(parents=True)
+    diff = subprocess.run(["git", "diff", "main", "--", ".", ":(exclude)OPENSWITCH_REPORT.md"], cwd=repo,
+                          capture_output=True, text=True, encoding="utf-8").stdout
+    (dst / "migration.diff").write_text(diff, encoding="utf-8")
+    names = subprocess.run(["git", "diff", "main", "--name-only"], cwd=repo, capture_output=True, text=True).stdout
+    for name in names.split():
+        if name == "OPENSWITCH_REPORT.md" or not (repo / name).is_file():
+            continue
+        out = dst / "files" / name
+        out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(repo / name, out)
+    (dst / "README.md").write_text(NEMOTRON_NOTE, encoding="utf-8")
 
 
 def card(r) -> str:
@@ -95,6 +128,11 @@ picks the cheapest configuration that keeps quality, rewrites the code, runs the
 <h2>Results on two apps</h2>
 RUNS
 
+<h2>All AI work runs on NVIDIA Nemotron</h2>
+<p class="mute">Every model call OpenSwitch makes goes through a Nebius Token Factory API key to Nemotron. No OpenAI or
+Anthropic key is used at any step. These are the totals from the ledgers of the two runs above.</p>
+NEMOTRON
+
 <h2>How it works</h2>
 <div class="steps">
 <div class="step"><b>Scan</b><p>The Python AST finds every OpenAI/Anthropic call, with its model and parameters.</p></div>
@@ -116,10 +154,38 @@ RUNS
 </main></body></html>"""
 
 
+ROLE_LABELS = {"judge": "Judge (checklist grading)", "candidate": "Candidates under test",
+               "eval-writer": "Eval-input writer", "researcher": "Researcher (reads Tavily results)",
+               "planner": "Planner", "rewriter": "Rewriter (writes the code changes)", "test-writer": "Test writer",
+               "debugger": "Debugger"}
+
+
+def nemotron_block(runs) -> str:
+    """Role x model totals across all runs, straight from the ledgers."""
+    agg: dict = {}
+    for r in runs:
+        for x in r["ledger"]:
+            a = agg.setdefault((x["role"], x["model"]), [0, 0, 0.0])
+            a[0] += x["calls"]
+            a[1] += x["tokens"]
+            a[2] += x["cost"]
+    rows = "".join(
+        f"<tr><td>{html.escape(ROLE_LABELS.get(role, role))}</td><td>Nemotron 3 {html.escape(model)}</td>"
+        f"<td>{c:,}</td><td>{t:,}</td><td>${cost:.3f}</td></tr>"
+        for (role, model), (c, t, cost) in sorted(agg.items(), key=lambda kv: -kv[1][1]))
+    tc, tt, tcost = (sum(v[i] for v in agg.values()) for i in range(3))
+    rows += f"<tr><th>Total</th><th></th><th>{tc:,}</th><th>{tt:,}</th><th>${tcost:.2f}</th></tr>"
+    return (f'<div class="run"><div class="tbl"><table><tr><th>Role</th><th>Model</th><th>Calls</th><th>Tokens</th>'
+            f"<th>Cost</th></tr>{rows}</table></div><p class=\"mute\">The code changes in each migration were written "
+            f'by Nemotron 3 Ultra; see <a href="REPO_URL/tree/main/examples/reports">written-by-nemotron/</a> in the '
+            f"repo.</p></div>")
+
+
 def main():
     runs = [load(Path(p)) for p in sys.argv[1:]]
     copy_reports(runs)
-    page = PAGE.replace("RUNS", "".join(card(r) for r in runs)).replace("REPO_URL", REPO_URL)
+    page = PAGE.replace("RUNS", "".join(card(r) for r in runs)).replace("NEMOTRON", nemotron_block(runs))
+    page = page.replace("REPO_URL", REPO_URL)
     (DOCS / "index.html").write_text(page, encoding="utf-8")
     (DOCS / ".nojekyll").write_text("", encoding="utf-8")
     print("wrote", DOCS / "index.html")

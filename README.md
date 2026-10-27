@@ -92,6 +92,34 @@ explicitly per call, with enough `max_tokens` headroom for thinking.
 Every call the agent makes goes through one ledger (`openswitch/llm.py`) tagged with its role, so the report shows
 exactly which model did which job, how many tokens it used and what it cost.
 
+### What Nemotron did in our two final runs
+
+All of OpenSwitch's AI work goes to NVIDIA Nemotron through a Nebius Token Factory API key. No OpenAI or
+Anthropic key is used at any step. The ledgers in
+[`helpdesk-ai/result.json`](examples/reports/helpdesk-ai/result.json) and
+[`issue-digest/result.json`](examples/reports/issue-digest/result.json) add up to:
+
+| Role | Nemotron model | Calls | Tokens | Cost |
+|---|---|---|---|---|
+| Judge (checklist grading) | Ultra 550B | 366 | 213,349 | $0.245 |
+| Candidates under test | Nano 30B | 172 | 57,848 | $0.010 |
+| Candidates under test | Super 120B | 172 | 49,103 | $0.031 |
+| Candidates under test | Ultra 550B | 172 | 54,717 | $0.121 |
+| Eval-input writer | Super 120B | 18 | 29,447 | $0.020 |
+| Researcher (reads Tavily results) | Super 120B | 9 | 29,727 | $0.010 |
+| Planner | Ultra 550B | 2 | 9,422 | $0.020 |
+| Rewriter (the code changes) | Ultra 550B | 2 | 8,016 | $0.015 |
+| Test writer | Ultra 550B | 1 | 3,637 | $0.008 |
+| **Total** | | **914** | **455,266** | **$0.48** |
+
+The code Nemotron 3 Ultra wrote in these runs (the migrated application files, config changes and the generated
+smoke test) is kept in [`examples/reports/*/written-by-nemotron/`](examples/reports/), as a full diff and as
+files. When OpenSwitch commits a migration, the commit is authored "OpenSwitch (NVIDIA Nemotron via Nebius
+Token Factory)".
+
+OpenSwitch itself (the orchestration, checkers, capture and report code in `openswitch/`) was written by the
+project author with an AI coding assistant. Nemotron is the model the tool runs on, not the author of the tool.
+
 ## Where Nebius Token Factory helped
 
 - **One OpenAI-compatible endpoint for every Nemotron size.** Nano, Super and Ultra share the same API, so trying

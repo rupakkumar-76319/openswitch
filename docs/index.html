@@ -58,6 +58,11 @@ picks the cheapest configuration that keeps quality, rewrites the code, runs the
   <div class="tbl"><table><tr><th>Call site</th><th>Was</th><th>Now</th><th>Score</th></tr><tr><td><code>complete</code></td><td>gpt-4o</td><td><span class='pill'>Nano 30B think</span></td><td>9.0</td></tr></table></div>
 </section>
 
+<h2>All AI work runs on NVIDIA Nemotron</h2>
+<p class="mute">Every model call OpenSwitch makes goes through a Nebius Token Factory API key to Nemotron. No OpenAI or
+Anthropic key is used at any step. These are the totals from the ledgers of the two runs above.</p>
+<div class="run"><div class="tbl"><table><tr><th>Role</th><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost</th></tr><tr><td>Judge (checklist grading)</td><td>Nemotron 3 Ultra 550B</td><td>366</td><td>213,349</td><td>$0.245</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Nano 30B</td><td>172</td><td>57,848</td><td>$0.010</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Ultra 550B</td><td>172</td><td>54,717</td><td>$0.121</td></tr><tr><td>Candidates under test</td><td>Nemotron 3 Super 120B</td><td>172</td><td>49,103</td><td>$0.031</td></tr><tr><td>Researcher (reads Tavily results)</td><td>Nemotron 3 Super 120B</td><td>9</td><td>29,727</td><td>$0.010</td></tr><tr><td>Eval-input writer</td><td>Nemotron 3 Super 120B</td><td>18</td><td>29,447</td><td>$0.020</td></tr><tr><td>Planner</td><td>Nemotron 3 Ultra 550B</td><td>2</td><td>9,422</td><td>$0.020</td></tr><tr><td>Rewriter (writes the code changes)</td><td>Nemotron 3 Ultra 550B</td><td>2</td><td>8,016</td><td>$0.015</td></tr><tr><td>Test writer</td><td>Nemotron 3 Ultra 550B</td><td>1</td><td>3,637</td><td>$0.008</td></tr><tr><th>Total</th><th></th><th>914</th><th>455,266</th><th>$0.48</th></tr></table></div><p class="mute">The code changes in each migration were written by Nemotron 3 Ultra; see <a href="https://github.com/rupakkumar-76319/openswitch/tree/main/examples/reports">written-by-nemotron/</a> in the repo.</p></div>
+
 <h2>How it works</h2>
 <div class="steps">
 <div class="step"><b>Scan</b><p>The Python AST finds every OpenAI/Anthropic call, with its model and parameters.</p></div>

@@ -249,8 +249,12 @@ def migrate(repo: Path, n_inputs: int, max_iters: int, reuse: bool):
     b = report.build(result)
     if branch:
         git(repo, "add", "-A")
-        git(repo, "commit", "-m", f"Migrate LLM calls to NVIDIA Nemotron on Nebius Token Factory\n\n"
-            f"Estimated LLM cost -{b['saving_pct']:.0f}%; tests: {summary}. See OPENSWITCH_REPORT.md.")
+        # The code in this commit was written by Nemotron 3 Ultra, so the commit is authored that way.
+        git(repo, "-c", "user.name=OpenSwitch (NVIDIA Nemotron via Nebius Token Factory)",
+            "-c", "user.email=openswitch@users.noreply.github.com",
+            "commit", "-m", f"Migrate LLM calls to NVIDIA Nemotron on Nebius Token Factory\n\n"
+            f"Estimated LLM cost -{b['saving_pct']:.0f}%; tests: {summary}. See OPENSWITCH_REPORT.md.\n\n"
+            f"Code written by Nemotron 3 Ultra 550B; models chosen by measured evals on Nano/Super/Ultra.")
         log(f"committed on branch {branch}")
     console.print()
     console.print(f"[bold green]Done in {result['seconds']}s.[/bold green] "
