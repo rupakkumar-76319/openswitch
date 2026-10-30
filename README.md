@@ -150,6 +150,48 @@ project author with an AI coding assistant. Nemotron is the model the tool runs 
 - Nebius AI Cloud (Serverless Jobs/Endpoints) is not used. OpenSwitch runs where the code lives. Running it as a
   Serverless Job against a repo URL is the obvious next step.
 
+## Quick start (5 steps)
+
+OpenSwitch is for people who build apps: if your Python project calls OpenAI or Anthropic and you want it on
+NVIDIA Nemotron for less money, this is for you.
+
+**You need:** Python 3.10+, Git, a [Nebius Token Factory](https://tokenfactory.nebius.com) API key (new accounts
+get trial credit) and a [Tavily](https://tavily.com) API key (the free plan is enough). You do **not** need an
+OpenAI or Anthropic key.
+
+1. **Install (once)**
+
+   ```bash
+   git clone https://github.com/rupakkumar-76319/openswitch
+   cd openswitch
+   python -m venv .venv
+   .venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
+   pip install -e ".[anthropic]"
+   ```
+
+2. **Add your keys (once).** Copy `.env.example` to `.env` (`copy .env.example .env` on Windows,
+   `cp .env.example .env` elsewhere), open it and fill in `NEBIUS_API_KEY` and `TAVILY_API_KEY`.
+   Never commit or share this file.
+
+3. **Run it on your app.** Your app should be a git repo with its changes committed.
+
+   ```bash
+   openswitch migrate path/to/your-app
+   ```
+
+   It takes about 2–5 minutes and prints each stage as it goes.
+
+4. **Read the result.**
+   - Open `your-app/.openswitch/report.html` in a browser for cost before and after, which Nemotron model
+     each call now uses, every score and the test results.
+   - The code changes are on a new branch, `openswitch/nemotron`. Your `main` branch is not touched.
+
+5. **Keep it or undo it.**
+   - Keep it: `git merge openswitch/nemotron`
+   - Undo it: `git checkout main`
+
+**Cost:** OpenSwitch is free and MIT-licensed. A migration uses about $0.10–$0.30 of Nebius credit.
+
 ## Run it
 
 Requires Python 3.10+.
